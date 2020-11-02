@@ -6,14 +6,15 @@
 # Enable port forwarding for transmission specifically in FreeBSD.
 #
 # Requirements:
-#   this can be executed from cron or from the shell with no arguments.
-#   ensure that your PIA credentials are entered in this script.
+#   This can be executed from cron or from the shell with no arguments
+#   Ensure that your PIA credentials are accessable from this script.
 #
 # Packages needed:
 #   pkg install -y sudo transmission-cli transmission-utils bas64 jq curl wget openvpn bash
 #
 # Usage:
-#  ./port_forward.sh or bash port_forward.sh or call from cron
+#  ./pia-port-foward.sh or bash pia-port-foward.sh or call from cron
+#
 # shellcheck disable=SC2236
 
 # Export path for when you use this in cron
