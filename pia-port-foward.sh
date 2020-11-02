@@ -10,7 +10,7 @@
 #   Ensure that your PIA credentials are accessable from this script.
 #
 # Packages needed:
-#   pkg install -y sudo transmission-cli transmission-utils bas64 jq curl wget openvpn bash
+#   pkg install -y sudo transmission-cli transmission-utils base64 jq curl wget openvpn bash
 #
 # Usage:
 #  ./pia-port-foward.sh or bash pia-port-foward.sh or call from cron
