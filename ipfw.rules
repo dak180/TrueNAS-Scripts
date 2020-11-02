@@ -1,0 +1,24 @@
+#!/bin/bash
+# Config
+
+# Set rules command prefix
+cmd="ipfw -q"
+vpn="tun0"
+user="transmission"
+localLan="192.168.0.0/16"
+
+# Flush out the list before we begin
+ipfw -q -f flush add
+
+# Allow all local traffic on the loopback interface
+${cmd} 00001 allow all from any to any via lo0
+
+# Allow any connection to/from VPN interface
+${cmd} 00010 allow all from any to any via ${vpn}
+
+# Allow connection to/from LAN by User
+${cmd} 00101 allow all from me to ${localLan} uid ${user}
+${cmd} 00102 allow all from ${localLan} to me uid ${user}
+
+# Deny any User connection outside LAN that does not use VPN
+${cmd} 00193 deny all from any to any uid ${user}
