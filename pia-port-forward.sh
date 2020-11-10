@@ -13,7 +13,7 @@
 #   pkg install -y sudo transmission-cli transmission-utils base64 jq curl wget openvpn bash
 #
 # Usage:
-#  ./pia-port-foward.sh or bash pia-port-foward.sh or call from cron
+#  ./pia-port-forward.sh or bash pia-port-forward.sh or call from cron
 #
 # shellcheck disable=SC2236
 
