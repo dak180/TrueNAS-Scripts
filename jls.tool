@@ -259,7 +259,7 @@ elif [ "${1}" = "pvr" ]; then
 ###
 
 ### Bazarr
-	sudo iocage pkg "${jlName}" install -y python37 python3 py37-pip py37-virtualenv py37-libxml2 py37-sqlite3 libxslt git unrar ffmpeg
+	sudo iocage pkg "${jlName}" install -y python37 python3 py37-libxml2 py37-sqlite3 py37-lxml py37-numpy py37-webrtcvad libxslt git unrar ffmpeg
 ###
 
 	# Set permissions
@@ -275,13 +275,13 @@ elif [ "${1}" = "pvr" ]; then
 ### Setup Bazarr
 	sudo iocage exec -f "${jlName}" -- "cd /mnt/scripts/pvr/ && cp -a ./bazarr /usr/local/etc/rc.d/bazarr"
 	sudo iocage exec -f "${jlName}" -- "chmod +x /usr/local/etc/rc.d/bazarr"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u "bazarr" -- git init"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u "bazarr" -- git remote add origin 'git://github.com/morpheus65535/bazarr.git'"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u "bazarr" -- git fetch"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u "bazarr" -- git reset origin/master --hard"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u "bazarr" -- git branch --set-upstream-to=origin/master"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u "bazarr" -- python3 -m venv venv"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && . ./venv/bin/activate && sudo -u "bazarr" -- pip install -r /usr/local/bazarr/requirements.txt"
+	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git init"
+	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git remote add origin 'git://github.com/morpheus65535/bazarr.git'"
+	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git fetch"
+	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git reset origin/master --hard"
+	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git branch --set-upstream-to='origin/master'"
+#	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- python3 -m venv venv"
+#	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && . ./venv/bin/activate && sudo -u 'bazarr' -- pip install -r /usr/local/bazarr/requirements.txt"
 ###
 
 	# Enable Services
