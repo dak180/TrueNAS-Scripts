@@ -267,6 +267,11 @@ fi
 # Parse Payload
 payloadPlusSig="$(get_payload_and_sig "$(get_auth_token "${tunnelAdapter}")" "$(get_gateway_ip "${tunnelAdapter}")" "${tunnelAdapter}")"
 
+# Try to catch error conditions
+if [ -z "${payloadPlusSig}" ]; then
+	exit 1
+fi
+
 payloadSig="$(echo "${payloadPlusSig}" | jq -Mre ".signature")"
 payLoad="$(echo "${payloadPlusSig}" | jq -Mre ".payload")"
 payLoadPort="$(echo "${payLoad}" | base64 -d | jq -Mre ".port")"
