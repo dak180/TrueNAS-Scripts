@@ -2,7 +2,7 @@
 
 # Config
 resolver60="search local.dak180.com local;nameserver 192.168.60.1"
-ioRelease="12.1-RELEASE" # LATEST
+ioRelease="12.2-RELEASE" # LATEST
 
 portS() {
 	sudo iocage exec -f "${jlName}" -- "portsnap fetch"
