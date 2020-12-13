@@ -86,7 +86,7 @@ if [ "${1}" = "plex" ]; then
 	pkg_repo
 	usrpths
 	jl_init
-	sudo iocage exec -f "${jlName}" -- 'sudo ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg youtube_dl AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver
@@ -138,7 +138,7 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	pkg_repo
 	usrpths
 	jl_init
-	sudo iocage exec -f "${jlName}" -- 'sudo ln -sf "/var/db/transmission/.bash_history" "/root/.bash_history"'
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/var/db/transmission/.bash_history" "/root/.bash_history"'
 	
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq
@@ -203,7 +203,7 @@ elif [ "${1}" = "unifi" ]; then
 	pkg_repo
 	usrpths
 	jl_init
-	sudo iocage exec -f "${jlName}" -- 'sudo ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
 	
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y unifi5
@@ -247,7 +247,7 @@ elif [ "${1}" = "pvr" ]; then
 	pkg_repo
 	usrpths
 	jl_init
-	sudo iocage exec -f "${jlName}" -- 'sudo ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 	
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y sonarr-devel jackett radarr mono mediainfo ca_root_nss
@@ -324,7 +324,7 @@ elif [ "${1}" = "znc" ]; then
 	pkg_repo
 	usrpths
 	jl_init
-	sudo iocage exec -f "${jlName}" -- 'sudo ln -sf "/usr/local/etc/znc/.bash_history" "/root/.bash_history"'
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/znc/.bash_history" "/root/.bash_history"'
 	
 	# Install packagespy36-pip
 	portS
