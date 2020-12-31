@@ -160,7 +160,7 @@ get_payload_and_sig() {
 	if [ -s "${payloadFile}" ]; then
 		json="$(cat "${payloadFile}")"
 	else
-		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "token=${authToken}" "https://${gatewayAddress}:19999/getSignature" | jq -Mre)"
+		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "token=${authToken}" "https://${gatewayAddress}:19999/getSignature" | jq -Mre .)"
 
 		printf "%s" "${json}" > "${payloadFile}"
     	echo "| Acquired new Signature." 1>&2
