@@ -245,7 +245,7 @@ function hdTemp {
 # 		Get the temp for the current drive.
 # 		194 is the standard SMART id for temp so we look for it at the
 # 		begining of the line.
-		hdTempCur="$(smartctl -a "/dev/${hdNum}" | grep "^194" | sed -E 's:[[:space:]]+: :g' | cut -d ' ' -f 10)"
+		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
 
@@ -280,7 +280,7 @@ function ssdTemp {
 # 		Get the temp for the current drive.
 # 		194 is the standard SMART id for temp so we look for it at the
 # 		begining of the line.
-		ssdTempCur="$(smartctl -a "/dev/${ssdNum}" | grep "^194" | sed -E 's:[[:space:]]+: :g' | cut -d ' ' -f 10)"
+		ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
 # 		Start adding temps for an average.
 		ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
 
@@ -325,7 +325,7 @@ function infoTemps {
 # 		Get the temp for the current drive.
 # 		194 is the standard SMART id for temp so we look for it at the
 # 		begining of the line.
-		hdTempCur="$(smartctl -a "/dev/${hdNum}" | grep "^194" | sed -E 's:[[:space:]]+: :g' | cut -d ' ' -f 10)"
+		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
 
@@ -341,7 +341,7 @@ function infoTemps {
 # 			Get the temp for the current drive.
 # 			194 is the standard SMART id for temp so we look for it at
 # 			the begining of the line.
-			ssdTempCur="$(smartctl -a "/dev/${ssdNum}" | grep "^194" | sed -E 's:[[:space:]]+: :g' | cut -d ' ' -f 10)"
+			ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
 # 			Start adding temps for an average.
 			ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
 
@@ -512,6 +512,7 @@ cut
 sleep
 bc
 smartctl
+jq
 ipmitool
 sysctl
 )
