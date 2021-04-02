@@ -251,7 +251,7 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 	
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y sonarr-devel jackett radarr mono mediainfo ca_root_nss
+	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr mono mediainfo ca_root_nss
 	sudo iocage pkg "${jlName}" lock -y jackett
 
 ### modern mono
