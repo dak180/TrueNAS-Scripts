@@ -103,6 +103,7 @@ media:816:816::::Media access user:/nonexistant:/usr/local/bin/bash:
 
 USEREOF
 
+clear
 
 # Jail Creation
 if [ "${1}" = "plex" ]; then
@@ -185,7 +186,7 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	sudo iocage pkg "${jailName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq
 	
 	# Set permissions
-	sudo iocage exec -f "${jailName}" -- "adduser -f /tmp/user"
+	sudo iocage exec -f "${jailName}" -- 'adduser -f /tmp/user'
 	sudo iocage exec -f "${jailName}" -- "pw groupmod $mediaGroup -m transmission"
 	sudo iocage exec -f "${jailName}" -- "touch /var/log/transmission.log"
 	sudo iocage exec -f "${jailName}" -- "chown transmission /var/log/transmission.log"
@@ -194,7 +195,7 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	sudo iocage exec -f "${jailName}" -- 'sysrc transmission_enable="YES"'
 	sudo iocage exec -f "${jailName}" -- "sysrc transmission_conf_dir=\"$trans_conf_dir\""
 	sudo iocage exec -f "${jailName}" -- "sysrc transmission_download_dir=\"$trans_download_dir\""
-	sudo iocage exec -f "${jailName}" -- "sysrc transmission_flags=\"--incomplete-dir $trans_incomplete --logfile /var/log/transmission.log\""
+	sudo iocage exec -f "${jailName}" -- "sysrc transmission_flags=\"$trans_flags"
 	sudo iocage exec -f "${jailName}" -- "sysrc transmission_watch_dir=\"$trans_watch_dir\""
 	sudo iocage exec -f "${jailName}" -- "sysrc transmission_group\"$mediaGroup\""
 	sudo iocage exec -f "${jailName}" -- "sysrc transmission_user=\"$mediaUser\""
@@ -203,7 +204,7 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	sudo iocage exec -f "${jailName}" -- "sysrc openvpn_configfile=\"$openvpn_configfile\""
 
 	sudo iocage exec -f "${jailName}" -- 'sysrc firewall_enable="YES"'
-	sudo iocage exec -f "${jailName}" -- "sysrc firewall_script=\S"$scriptsH/ipfw.rules\""
+	sudo iocage exec -f "${jailName}" -- "sysrc firewall_script=\"$scriptsH/ipfw.rules\""
 	sudo iocage exec -f "${jailName}" -- 'sysrc static_routes="net1"'
 	sudo iocage exec -f "${jailName}" -- 'sysrc net1="-net 192.168.0.0/16 192.168.0.1"'
 
@@ -425,7 +426,8 @@ elif [ "${1}" = "port" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -T -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_set_hostname="1" interfaces="vnet0:bridge0" vnet_default_interface="vlan10"; then
+	if ! sudo iocage create -T -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_set_hostname="1" interfaces="vnet0:bridge0" vnet_default_interface="vlan0"; then
+		echo "Failed to create the jail for '$1'"
 		exit 1
 	fi
 
@@ -450,7 +452,7 @@ elif [ "${1}" = "port" ]; then
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
 else
-	echo "usage: jls.tool <application>\n"
+	echo "usage: $0 <application>"
 fi
 
 
