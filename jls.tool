@@ -4,15 +4,37 @@
 resolver60="search local.dak180.com local;nameserver 192.168.60.1"
 ioRelease="12.2-RELEASE" # LATEST
 
-portS() {
+function portS {
 	sudo iocage pkg "${jlName}" install -y svnup
 	sudo iocage exec -f "${jlName}" -- 'cat /usr/local/etc/svnup.conf.sample | sed -e "s:#host=svn\.:host=svn\.:" > /usr/local/etc/svnup.conf'
 	sudo iocage exec -f "${jlName}" -- "svnup -v 0 ports"
 	sudo iocage exec -f "${jlName}" -- "cd /usr/ports/ports-mgmt/portmaster && make install clean"
 }
 
+function usrpths {
+	# Link files
+	local usrpth="/mnt/scripts/user"
 
-pkg_repo() {
+	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
+	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -fs .bashrc .profile"
+	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.nanorc\" .nanorc"
+	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.config\" .config"
+}
+
+function comn_mnt_pnts {
+	# Sets script and user mount points
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/"'
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180 nullfs rw 0 0"
+}
+
+function jl_init {
+	sudo iocage pkg "${jlName}" update && sudo iocage pkg "${jlName}" upgrade -y
+
+	sudo iocage exec -f "${jlName}" -- "pw groupadd -n jailmedia -g 1001"
+}
+
+function pkg_repo {
 	# Set latest pkg repo
 	sudo iocage exec -f "${jlName}" -- "mkdir -p /usr/local/etc/pkg/repos"
 	sudo iocage exec -f "${jlName}" -- 'tee "/usr/local/etc/pkg/repos/FreeBSD.conf" << EOF
@@ -24,23 +46,6 @@ FreeBSD: {
 EOF'
 }
 
-
-usrpths() {
-	# Link files
-	local usrpth="/mnt/scripts/user"
-
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -fs .bashrc .profile"
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.nanorc\" .nanorc"
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.config\" .config"
-}
-
-
-jl_init() {
-	sudo iocage pkg "${jlName}" update && sudo iocage pkg "${jlName}" upgrade -y
-
-	sudo iocage exec -f "${jlName}" -- "pw groupadd -n jailmedia -g 1001"
-}
 
 
 # Common Package list
@@ -75,9 +80,8 @@ if [ "${1}" = "plex" ]; then
 	fi
 
 	# Set Mounts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/usr/local/plexdata/" "/mnt/dbBackup/" "/var/db/tautulli/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180 nullfs rw 0 0"
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/plexdata/" "/mnt/dbBackup/" "/var/db/tautulli/"'
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /media/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/plex /usr/local/plexdata/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Backups/plex /mnt/dbBackup/ nullfs rw 0 0"
@@ -126,9 +130,8 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	fi
 
 	# Set Mounts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/mnt/incoming/" "/mnt/torrents/" "/mnt/transmission/" "/var/db/transmission/" "/usr/local/etc/openvpn/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180/ nullfs rw 0 0"
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/incoming/" "/mnt/torrents/" "/mnt/transmission/" "/var/db/transmission/" "/usr/local/etc/openvpn/"'
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /mnt/incoming/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/torrents /mnt/torrents/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Things/Torrents /mnt/transmission/ nullfs rw 0 0"
@@ -195,9 +198,8 @@ elif [ "${1}" = "unifi" ]; then
 	fi
 
 	# Set Mounts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/usr/local/share/java/unifi/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180/ nullfs rw 0 0"
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/share/java/unifi/"'
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/unifi /usr/local/share/java/unifi/ nullfs rw 0 0"
 
 	# Generic Configuration
@@ -233,9 +235,8 @@ elif [ "${1}" = "pvr" ]; then
 	fi
 
 	# Set Mounts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/jackett/" "/usr/local/bazarr/data/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180/ nullfs rw 0 0"
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/jackett/" "/usr/local/bazarr/data/"'
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /media/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/torrents /mnt/torrents/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Things/Torrents /mnt/transmission/ nullfs rw 0 0"
@@ -312,9 +313,8 @@ elif [ "${1}" = "znc" ]; then
 	fi
 
 	# Set Mounts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/usr/local/etc/znc/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180/ nullfs rw 0 0"
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/znc/"'
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/znc/ /usr/local/etc/znc/ nullfs rw 0 0"
 
 	# Generic Configuration
@@ -351,9 +351,7 @@ elif [ "${1}" = "test" ]; then
 	fi
 
 	# Set Mounts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180/ nullfs rw 0 0"
+	comn_mnt_pnts
 
 	# Generic Configuration
 	pkg_repo
@@ -383,9 +381,7 @@ elif [ "${1}" = "port" ]; then
 	fi
 
 	# Set Mounts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180/ nullfs rw 0 0"
+	comn_mnt_pnts
 
 	# Generic Configuration
 	pkg_repo
