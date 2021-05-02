@@ -245,7 +245,7 @@ function hdTemp {
 # 		Get the temp for the current drive.
 # 		194 is the standard SMART id for temp so we look for it at the
 # 		begining of the line.
-		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
+		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
 
@@ -280,7 +280,7 @@ function ssdTemp {
 # 		Get the temp for the current drive.
 # 		194 is the standard SMART id for temp so we look for it at the
 # 		begining of the line.
-		ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
+		ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
 
@@ -325,7 +325,7 @@ function infoTemps {
 # 		Get the temp for the current drive.
 # 		194 is the standard SMART id for temp so we look for it at the
 # 		begining of the line.
-		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
+		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
 
@@ -341,7 +341,7 @@ function infoTemps {
 # 			Get the temp for the current drive.
 # 			194 is the standard SMART id for temp so we look for it at
 # 			the begining of the line.
-			ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.ata_smart_attributes.table[] | select(.id == 194) | .raw.value')"
+			ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.temperature.current | values')"
 # 			Start adding temps for an average.
 			ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
 
