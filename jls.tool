@@ -265,7 +265,7 @@ elif [ "${1}" = "pvr" ]; then
 
 
 ### Bazarr
-	sudo iocage pkg "${jlName}" install -y python37 python3 py37-libxml2 py37-sqlite3 py37-lxml py37-numpy py37-webrtcvad libxslt git unrar ffmpeg
+	sudo iocage pkg "${jlName}" install -y python38 python3 py38-libxml2 py38-sqlite3 py38-lxml py38-numpy py38-webrtcvad libxslt git unrar ffmpeg
 ###
 
 	# Set permissions
@@ -331,7 +331,7 @@ elif [ "${1}" = "znc" ]; then
 	jl_init
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/znc/.bash_history" "/root/.bash_history"'
 
-	# Install packagespy36-pip
+	# Install packagespy38-pip
 	portS
 	sudo iocage exec -f "${jlName}" -- "portmaster --packages-build --force-config --delete-build-only -db irc/znc"
 
