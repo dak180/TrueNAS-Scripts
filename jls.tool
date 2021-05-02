@@ -84,6 +84,7 @@ if [ "${1}" = "plex" ]; then
 	# Set Mounts
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/plexdata/" "/mnt/dbBackup/" "/var/db/tautulli/"'
+
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /media/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/plex /usr/local/plexdata/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Backups/plex /mnt/dbBackup/ nullfs rw 0 0"
@@ -104,8 +105,8 @@ if [ "${1}" = "plex" ]; then
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc plexmediaserver_plexpass_enable="YES"'
-
 	sudo iocage exec -f "${jlName}" -- 'sysrc plexmediaserver_plexpass_support_path="/usr/local/plexdata"'
+
 	sudo iocage exec -f "${jlName}" -- 'sysrc tautulli_enable="YES"'
 
 	sudo iocage exec -f "${jlName}" -- "service tautulli start"
@@ -134,6 +135,7 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	# Set Mounts
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/incoming/" "/mnt/torrents/" "/mnt/transmission/" "/var/db/transmission/" "/usr/local/etc/openvpn/"'
+
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /mnt/incoming/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/torrents /mnt/torrents/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Things/Torrents /mnt/transmission/ nullfs rw 0 0"
@@ -208,6 +210,7 @@ elif [ "${1}" = "unifi" ]; then
 	# Set Mounts
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/share/java/unifi/"'
+
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/unifi /usr/local/share/java/unifi/ nullfs rw 0 0"
 
 	# Generic Configuration
@@ -245,6 +248,7 @@ elif [ "${1}" = "pvr" ]; then
 	# Set Mounts
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/jackett/" "/usr/local/bazarr/data/"'
+
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /media/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/torrents /mnt/torrents/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Things/Torrents /mnt/transmission/ nullfs rw 0 0"
@@ -323,6 +327,7 @@ elif [ "${1}" = "znc" ]; then
 	# Set Mounts
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/znc/"'
+
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/znc/ /usr/local/etc/znc/ nullfs rw 0 0"
 
 	# Generic Configuration
