@@ -59,7 +59,7 @@ tee "/tmp/pkg.json" << EOF
 	"fortune-mod-bofh",
 	"pkg-provides"
 	]
-} 
+}
 
 EOF
 
@@ -134,21 +134,21 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Things/Torrents /mnt/transmission/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/transmission /var/db/transmission/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/openvpn /usr/local/etc/openvpn/ nullfs rw 0 0"
-	
+
 	# Generic Configuration
 	pkg_repo
 	usrpths
 	jl_init
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/var/db/transmission/.bash_history" "/root/.bash_history"'
-	
+
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq
-	
+
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m transmission"
 	sudo iocage exec -f "${jlName}" -- "touch /var/log/transmission.log"
 	sudo iocage exec -f "${jlName}" -- "chown transmission /var/log/transmission.log"
-	
+
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_conf_dir="/var/db/transmission"'
@@ -174,14 +174,14 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	sudo iocage exec -f "${jlName}" -- '/mnt/scripts/trans/pia-port-forward.sh >> /var/log/pia.log 2>&1'
 	sudo iocage exec -f "${jlName}" -- "cp -sf /mnt/scripts/trans/transmission.logrotate /usr/local/etc/logrotate.d/transmission"
 	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/trans/transmission.crontab"
-	
+
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
 	sudo iocage set boot="1" "${jlName}"
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
-	
+
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
@@ -205,21 +205,21 @@ elif [ "${1}" = "unifi" ]; then
 	usrpths
 	jl_init
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
-	
+
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y unifi5
-	
+
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- "service unifi start"
-	
+
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
 	sudo iocage set boot="1" "${jlName}"
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
-	
+
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
@@ -249,7 +249,7 @@ elif [ "${1}" = "pvr" ]; then
 	usrpths
 	jl_init
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
-	
+
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr mono mediainfo ca_root_nss
 	sudo iocage pkg "${jlName}" lock -y jackett
@@ -295,14 +295,14 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- "service sonarr start"
 	sudo iocage exec -f "${jlName}" -- "service radarr start"
 	sudo iocage exec -f "${jlName}" -- "service bazarr start"
-	
+
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
 	sudo iocage set boot="1" "${jlName}"
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
-	
+
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
@@ -326,22 +326,22 @@ elif [ "${1}" = "znc" ]; then
 	usrpths
 	jl_init
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/znc/.bash_history" "/root/.bash_history"'
-	
+
 	# Install packagespy36-pip
 	portS
 	sudo iocage exec -f "${jlName}" -- "portmaster --packages-build --force-config --delete-build-only -db irc/znc"
-	
+
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc znc_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- "service znc start"
-	
+
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
 	sudo iocage set boot="1" "${jlName}"
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
-	
+
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
@@ -363,13 +363,13 @@ elif [ "${1}" = "test" ]; then
 	pkg_repo
 	usrpths
 	jl_init
-	
+
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y phoronix-test-suite-php74 autoconf automake cmake gmake openjdk8 perl5 pkgconf python python3
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
-	
+
 	# Create initial snapshot
 	sudo iocage stop "${jlName}"
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
@@ -395,13 +395,13 @@ elif [ "${1}" = "port" ]; then
 	pkg_repo
 	usrpths
 	jl_init
-	
+
 	# Install packages
 	portS
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
-	
+
 	# Create initial snapshot
 	sudo iocage stop "${jlName}"
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
