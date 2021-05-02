@@ -12,9 +12,10 @@ function portS {
 }
 
 function usrpths {
-	# Link files
+	# Sets up command prompt and nano defaults in the jails.
 	local usrpth="/mnt/scripts/user"
 
+	# Link files
 	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
 	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -fs .bashrc .profile"
 	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.nanorc\" .nanorc"
@@ -31,6 +32,7 @@ function comn_mnt_pnts {
 function jl_init {
 	sudo iocage pkg "${jlName}" update && sudo iocage pkg "${jlName}" upgrade -y
 
+	# Common group to coordinate permissions across multiple jails.
 	sudo iocage exec -f "${jlName}" -- "pw groupadd -n jailmedia -g 1001"
 }
 
@@ -153,26 +155,32 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	sudo iocage exec -f "${jlName}" -- "chown transmission /var/log/transmission.log"
 
 	# Enable Services
+	## Transmission config
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_conf_dir="/var/db/transmission"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_download_dir="/mnt/incoming/transmission"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_flags="--incomplete-dir /mnt/torrents --logfile /var/log/transmission.log"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_watch_dir="/mnt/transmission"'
 
+	## OpenVPN config
 	sudo iocage exec -f "${jlName}" -- 'sysrc openvpn_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc openvpn_configfile="/usr/local/etc/openvpn/openvpn.conf"'
 
+	## Network config
 	sudo iocage exec -f "${jlName}" -- 'sysrc firewall_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc firewall_script="/mnt/scripts/trans/ipfw.rules"'
+	## Static route for local inter-vlan connections
 	sudo iocage exec -f "${jlName}" -- 'sysrc static_routes="net1"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc net1="-net 192.168.0.0/16 192.168.60.1"'
 
+	# Start services
 	sudo iocage exec -f "${jlName}" -- "wget http://ipinfo.io/ip -qO -"
 	sudo iocage exec -f "${jlName}" -- "service openvpn start"
 	sudo iocage exec -f "${jlName}" -- "service ipfw start"
 	sudo iocage exec -f "${jlName}" -- "wget http://ipinfo.io/ip -qO -"
 	sudo iocage exec -f "${jlName}" -- "service transmission start"
 
+	# Final configuration
 	sudo iocage exec -f "${jlName}" -- 'transmission-remote --torrent-done-script "/mnt/scripts/trans/torrentPost.sh"'
 	sudo iocage exec -f "${jlName}" -- '/mnt/scripts/trans/pia-port-forward.sh >> /var/log/pia.log 2>&1'
 	sudo iocage exec -f "${jlName}" -- "cp -sf /mnt/scripts/trans/transmission.logrotate /usr/local/etc/logrotate.d/transmission"
