@@ -1,8 +1,11 @@
 #!/bin/bash
 
 # Config
-resolver60="search local.lan local;nameserver 192.168.0.1"
+interfaces="vnet0:bridge0"
 ioRelease="12.2-RELEASE" # LATEST
+ip4_addr="vnet0|192.168.0.11/24"
+resolverTransmission="/etc/resolv.conf"
+vnet_default_interface="igb0"
 
 # Common variable values
 #
@@ -17,13 +20,13 @@ media='/mnt/pool1/media/'
 p2p='/mnt/pool3/p2p/'
 #scripts='/mnt/pool1/scripts/'
 #usenet='/mnt/pool1/usenet/'
-userpath='/mnt/users/niel/'
+#userpath='/mnt/users/niel/'
 
 
 # In Host mount points
-configH='/mnt/config'
-p2pH='/mnt/p2p'
-mediaH='/mnt/media'
+configH='/mnt/config/'
+p2pH='/mnt/p2p/'
+mediaH='/mnt/media/'
 scriptsH='/mnt/scripts/'
 
 # OpenVPN stuff
@@ -33,7 +36,7 @@ openvpn_configfile="$openvpn_config/openvpn.conf"
 # Transmission stuff
 trans_conf_dir="$configH/transmission" # originally /var/db/transmission/
 trans_download_dir="$p2pH/completed" # originally /mnt/incoming/transmission
-trans_mkdirs="mkdir -pv \"$configH\" \"$mediaH\" \"$p2pH\" \"$scriptsH\" \"$userpath\"" # Originally 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/mnt/incoming/" "/mnt/torrents/" "/mnt/transmission/" "/var/db/transmission/" "/usr/local/etc/openvpn/"'
+trans_mkdirs="mkdir -pv $configH $mediaH $p2pH $scriptsH" # Originally 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/mnt/incoming/" "/mnt/torrents/" "/mnt/transmission/" "/var/db/transmission/" "/usr/local/etc/openvpn/"'
 trans_watch_dir="$p2pH/torrents/autoload" # originally /mnt/transmission
 trans_flags="--incomplete-dir $p2pH/incomplete --logfile /var/log/transmission.log" # originally --incomplete-dir /mnt/torrents --logfile /var/log/transmission.log
 
@@ -162,17 +165,17 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jailName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" allow_tun="1" interfaces="vnet0:bridge60" priority="3" resolver="${resolver60}" vnet0_mac="4a3a78771683 4a3a78771682" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jailName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="0" dhcp="0" allow_raw_sockets="0" allow_set_hostname="1" allow_tun="1" interfaces="${interfaces}" ip4_addr="$ip4_addr" priority="99" resolver="${resolverTransmission}" vnet_default_interface="$vnet_default_interface"; then
 		exit 1
 	fi
 
 	# Set Mounts
 	sudo iocage exec -f "${jailName}" -- $trans_mkdirs
-	sudo iocage fstab -a "${jailName}" "$scripts $scriptsH nullfs rw 0 0"
+	#sudo iocage fstab -a "${jailName}" "$scripts $scriptsH nullfs rw 0 0"
 	#sudo iocage fstab -a "${jailName}" "/mnt/jails/users/dak180 /mnt/users/dak180/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jailName}" "$media $mediaH nullfs rw 0 0"
 	sudo iocage fstab -a "${jailName}" "$p2p $p2pH nullfs rw 0 0"
-	sudo iocage fstab -a "${jailName}" "$configs $configH nullfs rw 0 0"
+	sudo iocage fstab -a "${jailName}" "$config $configsH nullfs rw 0 0"
 #	sudo iocage fstab -a "${jailName}" "/mnt/jails/Data/transmission $trans_conf_dir nullfs rw 0 0"
 #	sudo iocage fstab -a "${jailName}" "/mnt/jails/Data/openvpn /usr/local/etc/openvpn/ nullfs rw 0 0"
 	
