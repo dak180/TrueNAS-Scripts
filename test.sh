@@ -1,10 +1,13 @@
 #!/bin/bash
 
-# Config
+# Jail Configuration
+allow_raw_sockets="1" 
+allow_set_hostname="1"
+allow_tun="1"
 interfaces="vnet0:bridge0"
 ioRelease="12.2-RELEASE" # LATEST
 ip4_addr="vnet0|192.168.0.11/24"
-resolverTransmission="/etc/resolv.conf"
+resolverTransmission=''
 vnet_default_interface="igb0"
 
 # Pool locations for resources
@@ -55,6 +58,13 @@ media:816:816::::Media access user:/nonexistant:/usr/local/bin/bash:
 USEREOF
 
 
+jail_initialise() {
+	sudo iocage pkg "${jailName}" update && sudo iocage pkg "${jailName}" upgrade -y
+
+#	sudo iocage exec -f "${jailName}" -- "pw groupadd -n jailmedia -g 1001"
+}
+
+
 pkg_repo() {
 	# Set latest pkg repo
 	sudo iocage exec -f "${jailName}" -- "mkdir -pv /usr/local/etc/pkg/repos"
@@ -65,6 +75,16 @@ FreeBSD: {
 }
 
 EOF'
+}
+
+
+processParameters() {
+	if [ "$1" != "" ]; then
+		local newParam="$1=${!$1}"
+		optionalParams="$optionalParams $newParam"
+		return 0
+	fi
+	return 1
 }
 
 
@@ -79,22 +99,6 @@ usrpths() {
 }
 
 
-jl_init() {
-	sudo iocage pkg "${jailName}" update && sudo iocage pkg "${jlName}" upgrade -y
-
-#	sudo iocage exec -f "${jailName}" -- "pw groupadd -n jailmedia -g 1001"
-}
-
-
-processParameters() {
-	if [ "$1" != "" ]; then
-		local newParam="$1=${!$1}"
-		optionalParams="$optionalParams $newParam"
-		return 0
-	fi
-	return 1
-}
-
 clear
 
 if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
@@ -106,9 +110,19 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 		exit 2
 	fi
 
+	ip4_addr="$ip4_addr_transmission"
+	resolver="${resolverTransmission}" 
+	# Create optionalParams list.
+	processParameters 'allow_raw_sokets'
+	processParameters 'allow_set_hostname'
+	processParameters 'allow_tun'
+	processParameters 'interfaces'
+	processParameters 'ip4_addr'
+	processParameters 'resolver'
+	processParameters 'vnet_default_interface'
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jailName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="0" dhcp="0" allow_raw_sockets="0" allow_set_hostname="1" allow_tun="1"  interfaces="$interfaces" ip4_addr="$ip4_addr" priority="99" resolver="${resolverTransmission}" vnet_default_interface="$vnet_default_interface"; then
+	if ! sudo iocage create -b -n "${jailName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="0" dhcp="0" priority="99" $optionalParams; then
 		exit 1
 	fi
 
@@ -124,12 +138,18 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	# Generic Configuration
 	pkg_repo
 #	usrpths
-#	jl_init
+	jail_initialise
 	sudo iocage exec -f "${jailName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
 
 
 	# Install packages
 	sudo iocage pkg "${jailName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq
+
+	# Set permissions
+	sudo iocage exec -f "${jailName}" -- 'adduser -f /tmp/user'
+	sudo iocage exec -f "${jailName}" -- "pw groupmod $mediaGroup -m transmission"
+	sudo iocage exec -f "${jailName}" -- "touch /var/log/transmission.log"
+	sudo iocage exec -f "${jailName}" -- "chown transmission /var/log/transmission.log"
 
 
 	
@@ -142,3 +162,4 @@ fi
 
 
 rm /tmp/pkg.json
+rm /tmp/user
