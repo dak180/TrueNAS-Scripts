@@ -63,6 +63,7 @@ jail_initialise() {
 	sudo iocage pkg "${jailName}" update && sudo iocage pkg "${jailName}" upgrade -y
 
 #	sudo iocage exec -f "${jailName}" -- "pw groupadd -n jailmedia -g 1001"
+#	sudo iocage exec -f "${jailName}" -- "mkdir -pv $configH $mediaH $p2pH $scriptsH"
 }
 
 
@@ -81,7 +82,7 @@ EOF'
 
 processParameters() {
 	if [ "$1" != "" ]; then
-		local newParam="$1=${!$1}"
+		local newParam="$1='${!1}'"
 		optionalParams="$optionalParams $newParam"
 		return 0
 	fi
@@ -114,7 +115,7 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	ip4_addr="$trans_ip4_addr"
 	resolver="${trans_resolver}"
 	# Create optionalParams list.
-	processParameters 'allow_raw_sokets'
+	processParameters 'allow_raw_sockets'
 	processParameters 'allow_set_hostname'
 	processParameters 'allow_tun'
 	processParameters 'interfaces'
