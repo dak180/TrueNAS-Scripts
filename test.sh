@@ -48,6 +48,13 @@ tee "/tmp/pkg.json" << EOF
 EOF
 
 
+# media user file
+tee "/tmp/user" << USEREOF
+media:816:816::::Media access user:/nonexistant:/usr/local/bin/bash:
+
+USEREOF
+
+
 pkg_repo() {
 	# Set latest pkg repo
 	sudo iocage exec -f "${jailName}" -- "mkdir -pv /usr/local/etc/pkg/repos"
@@ -79,10 +86,20 @@ jl_init() {
 }
 
 
+processParameters() {
+	if [ "$1" != "" ]; then
+		local newParam="$1=${!$1}"
+		optionalParams="$optionalParams $newParam"
+		return 0
+	fi
+	return 1
+}
+
 clear
 
 if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	jailName="transmission2"
+	optionalParams=''
 
 	# Destroy old jail.
 	if ! sudo iocage destroy -f "${jailName}"; then
@@ -108,7 +125,12 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	pkg_repo
 #	usrpths
 #	jl_init
-#	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
+	sudo iocage exec -f "${jailName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
+
+
+	# Install packages
+	sudo iocage pkg "${jailName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq
+
 
 	
 	# Set jail to start at boot.
