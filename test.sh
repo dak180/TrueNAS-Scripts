@@ -6,8 +6,7 @@ allow_set_hostname="1"
 allow_tun="1"
 interfaces="vnet0:bridge0"
 ioRelease="12.2-RELEASE" # LATEST
-ip4_addr="vnet0|192.168.0.11/24"
-resolverTransmission=''
+ip4_addr=""
 vnet_default_interface="igb0"
 
 # Pool locations for resources
@@ -24,6 +23,8 @@ scriptsH='/mnt/scripts/'
 
 
 # Transmission stuff
+trans_ip4_addr="vnet0|192.168.0.11/24"
+trans_resolver=''
 trans_conf_dir="$configH/transmission" # originally /var/db/transmission/
 trans_download_dir="$p2pH/completed" # originally /mnt/incoming/transmission
 trans_mkdirs="mkdir -pv $configH $mediaH $p2pH $scriptsH" # Originally 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/" "/mnt/incoming/" "/mnt/torrents/" "/mnt/transmission/" "/var/db/transmission/" "/usr/local/etc/openvpn/"'
@@ -110,8 +111,8 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 		exit 2
 	fi
 
-	ip4_addr="$ip4_addr_transmission"
-	resolver="${resolverTransmission}" 
+	ip4_addr="$trans_ip4_addr"
+	resolver="${trans_resolver}"
 	# Create optionalParams list.
 	processParameters 'allow_raw_sokets'
 	processParameters 'allow_set_hostname'
