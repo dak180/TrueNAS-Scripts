@@ -50,8 +50,8 @@ EOF
 
 pkg_repo() {
 	# Set latest pkg repo
-	sudo iocage exec -f "${jlName}" -- "mkdir -pv /usr/local/etc/pkg/repos"
-	sudo iocage exec -f "${jlName}" -- 'tee "/usr/local/etc/pkg/repos/FreeBSD.conf" << EOF
+	sudo iocage exec -f "${jailName}" -- "mkdir -pv /usr/local/etc/pkg/repos"
+	sudo iocage exec -f "${jailName}" -- 'tee "/usr/local/etc/pkg/repos/FreeBSD.conf" << EOF
 
 FreeBSD: {
   url: "pkg+http://pkg.FreeBSD.org/\${ABI}/latest"
@@ -65,17 +65,17 @@ usrpths() {
 	# Link files
 	local usrpth="/mnt/scripts/user"
 
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -fs .bashrc .profile"
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.nanorc\" .nanorc"
-	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s \"${usrpth}/.config\" .config"
+	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
+	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -fs .bashrc .profile"
+	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.nanorc\" .nanorc"
+	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.config\" .config"
 }
 
 
 jl_init() {
-	sudo iocage pkg "${jlName}" update && sudo iocage pkg "${jlName}" upgrade -y
+	sudo iocage pkg "${jailName}" update && sudo iocage pkg "${jlName}" upgrade -y
 
-	sudo iocage exec -f "${jlName}" -- "pw groupadd -n jailmedia -g 1001"
+#	sudo iocage exec -f "${jailName}" -- "pw groupadd -n jailmedia -g 1001"
 }
 
 
