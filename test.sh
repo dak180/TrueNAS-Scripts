@@ -9,7 +9,7 @@ defaultrouter="192.168.0.1"
 dhcp="0"
 interfaces=""
 ip4_addr=""
-packages="/tmp/pkg.json"
+pkglist="/tmp/pkg.json"
 priority="99"
 release="12.2-RELEASE" # LATEST
 type="normal"
@@ -22,6 +22,7 @@ configs='/mnt/pool1/configs/'
 media='/mnt/pool1/media/'
 p2p='/mnt/pool3/p2p/'
 scripts='/mnt/pool1/scripts/'
+user=''
 
 # In Host mount points
 configH='/mnt/config/'
@@ -67,6 +68,16 @@ media:816:816::::Media access user:/nonexistant:/usr/local/bin/bash:
 USEREOF
 
 
+addParameter() {
+	if [ "${!1}" != "" ]; then
+		local newParam="$1='${!1}'"
+		parameters="$2$prefix$parameters $newParam"
+		return 0
+	fi
+	return 1
+}
+
+
 jail_initialise() {
 	sudo iocage pkg "${jailName}" update && sudo iocage pkg "${jailName}" upgrade -y
 
@@ -88,33 +99,24 @@ EOF'
 }
 
 
-addParameter() {
-	if [ "${!1}" != "" ]; then
-		local newParam="$1='${!1}'"
-		parameters="$parameters $newParam"
-		return 0
-	fi
-	return 1
-}
-
 setBaseParameters() {
-	parameters=''
+	parameters=" -b -n ${jailName} -r ${release}"
 	addParameter 'allow_raw_sockets'
 	addParameter 'allow_set_hostname'
 	addParameter 'bpf'
 	addParameter 'dhcp'
-	addParameter 'packages'
-	addParameter 'release'
+	addParameter 'pkglist'
 }
+
 
 usrpths() {
 	# Link files
-	local usrpth="/mnt/scripts/user"
+#	local usrpth="/mnt/scripts/$user"
 
-	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
-	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -fs .bashrc .profile"
-	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.nanorc\" .nanorc"
-	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.config\" .config"
+#	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
+#	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -fs .bashrc .profile"
+#	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.nanorc\" .nanorc"
+#	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.config\" .config"
 }
 
 
@@ -123,7 +125,6 @@ clear
 
 if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	jailName="transmission2"
-	parameters=''
 
 	# Destroy old jail.
 	if ! sudo iocage destroy -f "${jailName}"; then
@@ -144,7 +145,7 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	addParameter 'vnet_default_interface'
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jailName}" $parameters; then
+	if ! sudo iocage create $parameters; then
 		exit 1
 	fi
 
