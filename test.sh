@@ -4,10 +4,18 @@
 allow_raw_sockets="1" 
 allow_set_hostname="1"
 allow_tun="1"
-interfaces="vnet0:bridge0"
-ioRelease="12.2-RELEASE" # LATEST
+bpf="0"
+defaultrouter="192.168.0.1"
+dhcp="0"
+interfaces=""
 ip4_addr=""
+packages="/tmp/pkg.json"
+priority="99"
+release="12.2-RELEASE" # LATEST
+type="normal"
+vnet="1"
 vnet_default_interface="igb0"
+
 
 # Pool locations for resources
 configs='/mnt/pool1/configs/'
@@ -80,15 +88,24 @@ EOF'
 }
 
 
-processParameters() {
-	if [ "$1" != "" ]; then
+addParameter() {
+	if [ "${!1}" != "" ]; then
 		local newParam="$1='${!1}'"
-		optionalParams="$optionalParams $newParam"
+		parameters="$parameters $newParam"
 		return 0
 	fi
 	return 1
 }
 
+baseParameters() {
+	parameters=''
+	addParameter 'allow_raw_sockets'
+	addParameter 'allow_set_hostname'
+	addParameter 'bpf'
+	addParameter 'dhcp'
+	addParameter 'packages'
+	addParameter 'release'
+}
 
 usrpths() {
 	# Link files
@@ -105,26 +122,27 @@ clear
 
 if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	jailName="transmission2"
-	optionalParams=''
+	parameters=''
 
 	# Destroy old jail.
 	if ! sudo iocage destroy -f "${jailName}"; then
 		exit 2
 	fi
 
-	ip4_addr="$trans_ip4_addr"
-	resolver="${trans_resolver}"
-	# Create optionalParams list.
-	processParameters 'allow_raw_sockets'
-	processParameters 'allow_set_hostname'
-	processParameters 'allow_tun'
-	processParameters 'interfaces'
-	processParameters 'ip4_addr'
-	processParameters 'resolver'
-	processParameters 'vnet_default_interface'
+	ip4_addr="${trans_ip4_addr}"
+	resolver=${trans_resolver}
+	# Create parameters list.
+	addParameter 'allow_tun'
+	addParameter 'interfaces'
+	addParameter 'ip4_addr'
+	addParameter 'priority'
+	addParameter 'resolver'
+	addParameter 'type'
+	addParameter 'vnet'
+	addParameter 'vnet_default_interface'
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jailName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="0" dhcp="0" priority="99" $optionalParams; then
+	if ! sudo iocage create -b -n "${jailName}" $parameters; then
 		exit 1
 	fi
 
