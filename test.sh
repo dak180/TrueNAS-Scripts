@@ -97,7 +97,7 @@ addParameter() {
 	return 1
 }
 
-baseParameters() {
+setBaseParameters() {
 	parameters=''
 	addParameter 'allow_raw_sockets'
 	addParameter 'allow_set_hostname'
@@ -120,6 +120,7 @@ usrpths() {
 
 clear
 
+
 if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	jailName="transmission2"
 	parameters=''
@@ -131,7 +132,7 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 
 	ip4_addr="${trans_ip4_addr}"
 	resolver=${trans_resolver}
-	baseParameters
+	setBaseParameters
 	# Add optional parameters to list.
 	addParameter 'allow_tun'
 	addParameter 'interfaces'
