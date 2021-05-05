@@ -131,7 +131,8 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 
 	ip4_addr="${trans_ip4_addr}"
 	resolver=${trans_resolver}
-	# Create parameters list.
+	baseParameters
+	# Add optional parameters to list.
 	addParameter 'allow_tun'
 	addParameter 'interfaces'
 	addParameter 'ip4_addr'
