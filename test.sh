@@ -19,6 +19,7 @@ vnet_default_interface="igb0"
 
 # Pool locations for resources
 configs='/mnt/pool1/configs/'
+iocage='/mnt/pool1/iocage'
 media='/mnt/pool1/media/'
 p2p='/mnt/pool3/p2p/'
 scripts='/mnt/pool1/scripts/'
@@ -111,7 +112,7 @@ setBaseParameters() {
 
 usrpths() {
 	# Link files
-#	local usrpth="/mnt/scripts/$user"
+	local usrpth="/mnt/scripts/$user"
 
 #	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -s \"${usrpth}/.profile\" .bashrc"
 #	sudo iocage exec -f "${jailName}" -- "cd /root/ && ln -fs .bashrc .profile"
@@ -127,9 +128,12 @@ if [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	jailName="transmission2"
 
 	# Destroy old jail.
-	if ! sudo iocage destroy -f "${jailName}"; then
-		exit 2
+	if [ -d "$iocage/jails/${jailName}" ]; then
+		if ! sudo iocage destroy -f "${jailName}"; then
+			exit 2
+		fi
 	fi
+
 
 	ip4_addr="${trans_ip4_addr}"
 	resolver=${trans_resolver}
