@@ -243,8 +243,6 @@ function hdTemp {
 
 	for hdNum in "${hdName[@]}"; do
 # 		Get the temp for the current drive.
-# 		194 is the standard SMART id for temp so we look for it at the
-# 		begining of the line.
 		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
@@ -278,8 +276,6 @@ function ssdTemp {
 
 	for ssdNum in "${ssdName[@]}"; do
 # 		Get the temp for the current drive.
-# 		194 is the standard SMART id for temp so we look for it at the
-# 		begining of the line.
 		ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
@@ -323,8 +319,6 @@ function infoTemps {
 
 	for hdNum in "${hdName[@]}"; do
 # 		Get the temp for the current drive.
-# 		194 is the standard SMART id for temp so we look for it at the
-# 		begining of the line.
 		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
@@ -339,13 +333,11 @@ function infoTemps {
 	if [ ! "${#ssdName[@]}" = "0" ]; then
 		for ssdNum in "${ssdName[@]}"; do
 # 			Get the temp for the current drive.
-# 			194 is the standard SMART id for temp so we look for it at
-# 			the begining of the line.
 			ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.temperature.current | values')"
 # 			Start adding temps for an average.
 			ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
 
-# 			Echo HD's current temp
+# 			Echo SSD's current temp
 			echo -e "${ssdNum} Temp:\t${ssdTempCur}°C"
 		done
 # 		Divide by number of drives for average.
