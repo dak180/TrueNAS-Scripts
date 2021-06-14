@@ -354,6 +354,63 @@ elif [ "${1}" = "znc" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
+elif [ "${1}" = "elasticsearch" ]; then
+	jlName="elasticsearch"
+
+
+	# Create jail
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" nat="1" nat_forwards="tcp(9200:9200),tcp(5601:5601)" allow_raw_sockets="1" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" priority="1" ip4_addr="vnet0|172.16.0.9/30"; then
+		exit 1
+	fi
+
+	# Set Mounts
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/fscrawler/" "/usr/local/etc/elasticsearch/" "/var/db/elasticsearch" "/usr/local/etc/kibana" "/mnt/Media/" "/mnt/Things/"'
+
+	sudo iocage fstab -a "${jlName}" "proc   /proc    procfs   rw  0  0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/fscrawler /mnt/fscrawler/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/elasticsearch/etc /usr/local/etc/elasticsearch/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/elasticsearch/db /var/db/elasticsearch/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/kibana /usr/local/etc/kibana/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /mnt/Media/ nullfs ro 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/data/Things /mnt/Things/ nullfs ro 0 0"
+
+	# Generic Configuration
+	pkg_repo
+	usrpths
+	jl_init
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/elasticsearch/.bash_history" "/root/.bash_history"'
+
+	# Install packages
+	sudo iocage pkg "${jlName}" install -y elasticsearch7 kibana7 openjdk15 tesseract-data tesseract
+
+### Setup fscrawler
+
+###
+
+	# Set permissions
+	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m elasticsearch"
+
+	# Enable Services
+	sudo iocage exec -f "${jlName}" -- 'elasticsearch_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'kibana_enable="YES"'
+
+	#sudo iocage exec -f "${jlName}" -- "service elasticsearch start"
+	#sudo iocage exec -f "${jlName}" -- "service kibana start"
+
+	# Final configuration
+	sudo iocage exec -f "${jlName}" -- "crontab -u elasticsearch /mnt/scripts/search/elasticsearch.crontab"
+
+	# Set jail to start at boot.
+	sudo iocage stop "${jlName}"
+	sudo iocage set boot="1" "${jlName}"
+
+	# Check IP Address
+	sudo iocage get ip4_addr "${jlName}"
+
+	# Create initial snapshot
+	sudo iocage snapshot "${jlName}" -n InitialConfiguration
+	sudo iocage start "${jlName}"
 elif [ "${1}" = "test" ]; then
 	jlName="test"
 
