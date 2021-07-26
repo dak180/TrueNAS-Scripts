@@ -247,7 +247,7 @@ elif [ "${1}" = "pvr" ]; then
 
 	# Set Mounts
 	comn_mnt_pnts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/jackett/" "/usr/local/bazarr/data/"'
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/jackett/" "/usr/local/bazarr/"'
 
 	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /media/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/data/torrents /mnt/torrents/ nullfs rw 0 0"
@@ -255,7 +255,7 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/sonarr /usr/local/sonarr/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/radarr /usr/local/radarr/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/jackett /usr/local/jackett/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/bazarr /usr/local/bazarr/data/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/bazarr /usr/local/bazarr/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
