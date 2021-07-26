@@ -264,9 +264,13 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mono6.8 mediainfo ca_root_nss
+	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mono mediainfo ca_root_nss
 	sudo iocage pkg "${jlName}" lock -y jackett
 
+### modern mono
+	sudo iocage pkg "${jlName}" install -y libiconv
+	sudo iocage pkg "${jlName}" install -y  /mnt/scripts/pvr/mono-6.8.0.105.txz
+###
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "chown -R bazarr:bazarr /usr/local/bazarr/"
