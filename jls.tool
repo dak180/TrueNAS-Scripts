@@ -264,17 +264,12 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr mono6.8 mediainfo ca_root_nss
+	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mono6.8 mediainfo ca_root_nss
 	sudo iocage pkg "${jlName}" lock -y jackett
 
 
-### Bazarr
-	sudo iocage pkg "${jlName}" install -y python38 python3 py38-libxml2 py38-sqlite3 py38-lxml py38-numpy py38-webrtcvad libxslt git unrar ffmpeg
-###
-
 	# Set permissions
-	sudo iocage exec -f "${jlName}" -- "pw groupadd -n 'bazarr' -g '357'"
-	sudo iocage exec -f "${jlName}" -- "pw useradd -n 'bazarr' -u '357' -c 'Bazarr Daemon' -d	'/nonexistent' -s '/usr/sbin/nologin' -w 'no' -g 'bazarr'"
+	sudo iocage exec -f "${jlName}" -- "chown -R bazarr:bazarr /usr/local/bazarr/"
 	sudo iocage exec -f "${jlName}" -- "chown -R jackett:jackett /usr/local/share/jackett/"
 	sudo iocage exec -f "${jlName}" -- "chown -R bazarr:bazarr /usr/local/bazarr/"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m sonarr"
@@ -282,17 +277,6 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m jackett"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m bazarr"
 
-### Setup Bazarr
-	sudo iocage exec -f "${jlName}" -- "cd /mnt/scripts/pvr/ && cp -a ./bazarr /usr/local/etc/rc.d/bazarr"
-	sudo iocage exec -f "${jlName}" -- "chmod +x /usr/local/etc/rc.d/bazarr"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git init"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git remote add origin 'git://github.com/morpheus65535/bazarr.git'"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git fetch"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git reset origin/master --hard"
-	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- git branch --set-upstream-to='origin/master'"
-#	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && sudo -u 'bazarr' -- python3 -m venv venv"
-#	sudo iocage exec -f "${jlName}" -- "cd /usr/local/bazarr && . ./venv/bin/activate && sudo -u 'bazarr' -- pip install -r /usr/local/bazarr/requirements.txt"
-###
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc sonarr_enable="YES"'
