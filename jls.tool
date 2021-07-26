@@ -273,9 +273,7 @@ elif [ "${1}" = "pvr" ]; then
 ###
 
 	# Set permissions
-	sudo iocage exec -f "${jlName}" -- "chown -R bazarr:bazarr /usr/local/bazarr/"
 	sudo iocage exec -f "${jlName}" -- "chown -R jackett:jackett /usr/local/share/jackett/"
-	sudo iocage exec -f "${jlName}" -- "chown -R bazarr:bazarr /usr/local/bazarr/"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m sonarr"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m radarr"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m jackett"
