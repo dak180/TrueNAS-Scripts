@@ -267,9 +267,10 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mono mediainfo ca_root_nss
 	sudo iocage pkg "${jlName}" lock -y jackett
 
-### modern mono
+### mono fixes
 	sudo iocage pkg "${jlName}" install -y libiconv
 	sudo iocage pkg "${jlName}" install -y  /mnt/scripts/pvr/mono-6.8.0.105.txz
+	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
 ###
 
 	# Set permissions
