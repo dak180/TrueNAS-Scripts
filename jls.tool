@@ -264,12 +264,10 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mono mediainfo ca_root_nss
+	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mediainfo ca_root_nss
 	sudo iocage pkg "${jlName}" lock -y jackett
 
 ### mono fixes
-	sudo iocage pkg "${jlName}" install -y libiconv
-	sudo iocage pkg "${jlName}" install -y  /mnt/scripts/pvr/mono-6.8.0.105.txz
 	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
 ###
 
