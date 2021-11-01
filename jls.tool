@@ -268,6 +268,8 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage pkg "${jlName}" lock -y jackett
 
 ### mono fixes
+	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz
+	sudo iocage pkg "${jlName}" lock -y mono6.8
 	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
 ###
 
