@@ -7,7 +7,7 @@ ioRelease="12.2-RELEASE" # LATEST
 function portS {
 	sudo iocage pkg "${jlName}" install -y svnup
 	sudo iocage exec -f "${jlName}" -- 'cat /usr/local/etc/svnup.conf.sample | sed -e "s:#host=svn\.:host=svn\.:" > /usr/local/etc/svnup.conf'
-	sudo iocage exec -f "${jlName}" -- "svnup -v 0 ports"
+	sudo iocage exec -f "${jlName}" -- "svnup ports -v 0"
 	sudo iocage exec -f "${jlName}" -- "cd /usr/ports/ports-mgmt/portmaster && make install clean"
 }
 
