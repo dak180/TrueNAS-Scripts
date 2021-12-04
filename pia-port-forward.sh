@@ -36,7 +36,7 @@ if [ ! -d "${tempDir}" ]; then
 	mkdir -p "${tempDir}"
 fi
 
-check_for_connectivity() {
+function check_for_connectivity() {
 	if sudo -u "${vpnUser}" -- nc -zw 1 google.com 80 &> /dev/null; then
 		echo "| VPN connection up." 1>&2
 		return 0
@@ -46,7 +46,7 @@ check_for_connectivity() {
 	fi
 }
 
-re_check_connectivity() {
+function re_check_connectivity() {
 	# google.com
 	if sudo -u "${vpnUser}" -- nc -zw 1 google.com 80; then
 		echo "| VPN connection restored." 1>&2
@@ -57,7 +57,8 @@ re_check_connectivity() {
 	fi
 }
 
-VPN_Status() {
+
+function VPN_Status() {
 	# set adaptorName
 	# Config
 	local tunnelAdapter
@@ -78,7 +79,7 @@ VPN_Status() {
 	fi
 }
 
-is_port_forwarded() {
+function is_port_forwarded() {
 	# test to see if the port is already forwarded
 	# Config
 	local json
@@ -97,7 +98,7 @@ is_port_forwarded() {
 	fi
 }
 
-get_gateway_ip() {
+function get_gateway_ip() {
 	# get gateway ip address
 	# Config
 	local tunnelAdapter
@@ -111,7 +112,7 @@ get_gateway_ip() {
 	return 0
 }
 
-get_auth_token() {
+function get_auth_token() {
     # Get Auth Token
     # Config
 	local adaptorName
@@ -140,7 +141,7 @@ get_auth_token() {
     fi
 }
 
-get_payload_and_sig() {
+function get_payload_and_sig() {
 	# Get payload & signature
 	# Config
 	local authToken
@@ -180,7 +181,7 @@ get_payload_and_sig() {
 	echo "${json}"
 }
 
-set_port() {
+function set_port() {
 	# if port is not forwarded, get a new port for transmission
 	echo "| Loading port forward assignment information.." 1>&2
 
@@ -206,7 +207,7 @@ set_port() {
 	fi
 }
 
-refresh_port() {
+function refresh_port() {
 	# Bind the port to the server; this must be done at least every 15 mins.
 
 	# Config
