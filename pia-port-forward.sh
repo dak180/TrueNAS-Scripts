@@ -56,11 +56,10 @@ re_check_connectivity() {
 		exit 1
 	fi
 }
-	
 
 VPN_Status() {
 	# set adaptorName
-	# Config 
+	# Config
 	local tunnelAdapter
 	local try
 
@@ -83,7 +82,7 @@ is_port_forwarded() {
 	# test to see if the port is already forwarded
 	# Config
 	local json
-	
+
 	# -pt tests for open port.
 	json="$(transmission-remote -pt 2>&1)"
 	if [ "${json}" == "Port is open: No" ]; then
@@ -100,7 +99,7 @@ is_port_forwarded() {
 
 get_gateway_ip() {
 	# get gateway ip address
-	# Config 
+	# Config
 	local tunnelAdapter
 	local gatewayAddress
 
@@ -155,7 +154,7 @@ get_payload_and_sig() {
 	authToken="${1}"
 	gatewayAddress="${2}"
 	adaptorName="${3}"
-	
+
 
 	if [ -s "${payloadFile}" ]; then
 		json="$(cat "${payloadFile}")"
@@ -190,7 +189,7 @@ set_port() {
 	local PORTNUM
 
 	json="${1}"
-	
+
 	PORTNUM="$(echo "${json}" | grep -oE "[0-9]+")"
 	# test to make sure that the port is actually a number
 	if echo "${PORTNUM}" | grep -qE '^\-?[0-9]+$'; then
@@ -244,8 +243,8 @@ refresh_port() {
 # If re-check fails, script will exit without any other execution.
 #
 # Second this will check for port forward status.  If the port forward
-# is enabled, script will exit.  If the port is not properly 
-# forwarded, the script will call for a new port assignment and if it 
+# is enabled, script will exit.  If the port is not properly
+# forwarded, the script will call for a new port assignment and if it
 # is valid, will tell transmission to use the new port.
 
 # echo date/time for logging
