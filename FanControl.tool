@@ -177,7 +177,7 @@ function cpuTemp {
 
 # 		Keep track of the highest current temp
 		if [ "$(roundR "${cpuTempMx}")" -gt "$(roundR "${cpuTempCur}")" ]; then
-			cpuTempMx="${cpuTempMx}"
+			true
 		else
 			cpuTempMx="${cpuTempCur}"
 		fi
@@ -188,7 +188,7 @@ function cpuTemp {
 # 	If the hottest CPU matches/exceeds the max temp use that
 # 	instead of the average.
 	if [ "${cpuTempMx}" -gt "${cpuTempCur}" ]; then
-		cpuTempMx="${cpuTempMx}"
+		true
 	else
 		cpuTempMx="${cpuTempCur}"
 	fi
@@ -249,7 +249,7 @@ function hdTemp {
 
 # 		Keep track of the highest current temp
 		if [ "${hdTempMx}" -gt "${hdTempCur}" ]; then
-			hdTempMx="${hdTempMx}"
+			true
 		else
 			hdTempMx="${hdTempCur}"
 		fi
@@ -282,7 +282,7 @@ function ssdTemp {
 
 # 		Keep track of the highest current temp
 		if [ "${ssdTempMx}" -gt "${ssdTempCur}" ]; then
-			ssdTempMx="${ssdTempMx}"
+			true
 		else
 			ssdTempMx="${ssdTempCur}"
 		fi
