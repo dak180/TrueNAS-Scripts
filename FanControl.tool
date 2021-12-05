@@ -36,7 +36,7 @@ ambTempVariance="1" # How many degrees the ambient temperature may effect the ta
 
 # HBA Settings
 targetHBATemp="41" # The temperature that we try to maintain.
-# maxHBATemp="55" # Do not let the HBA get hotter than this.	Currently unused
+maxHBATemp="55" # Do not let the HBA get hotter than this.
 
 
 # PID Controls
@@ -70,6 +70,12 @@ ada4
 ada5
 )
 
+# List of HBAs
+# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
+hbaName=(
+mpr0
+)
+
 
 # Everything below this line is MB specific.
 # These examples are for an ASRockRack E3C236D4U.
@@ -89,6 +95,11 @@ ada5
 hbaTempSens[0]="TR1 Temp"		# HBA temp
 ambTempSens[0]="MB Temp"		# Ambient temp
 ambTempSens[1]="Card Side Temp"	# Ambient temp
+
+if [ ! "${#hbaTempSens[@]}" = "0" ]; then
+	hbaName+=("${hbaTempSens[@]}")
+fi
+
 
 # IPMI Fan Commands
 #
@@ -300,6 +311,44 @@ function ssdTemp {
 }
 
 
+# Get average or high hba temperature.
+function hbaTemp {
+	local hbaNum
+	local hbaTempCur
+	local hbaTempAv="0"
+	local hbaTempMx="0"
+
+	for hbaNum in "${hbaName[@]}"; do
+# 		Get the temp for the current hba.
+		if [ -c "/dev/${hbaNum}" ]; then
+			# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
+			hbaTempCur="$(/mnt/jails/scripts/lsi_temp  "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
+		else
+			hbaTempCur="$(ipmiSens "${hbaNum}")"
+		fi
+# 		Start adding temps for an average.
+		hbaTempAv="$(( hbaTempAv + hbaTempCur ))"
+
+# 		Keep track of the highest current temp
+		if [ "${hbaTempMx}" -gt "${hbaTempCur}" ]; then
+			true
+		else
+			hbaTempMx="${hbaTempCur}"
+		fi
+	done
+# 	Divide by number of hba for average.
+	hbaTempAv="$(bc <<< "scale=3;${hbaTempAv} / ${#hbaName[@]}")"
+
+# 	If the hottest drive matches/exceeds the max temp use that instead
+# 	of the average.
+	if [ "${hbaTempMx}" -ge "${maxHBATemp}" ]; then
+		echo "${hbaTempMx}"
+	else
+		echo "${hbaTempAv}"
+	fi
+}
+
+
 # Print temp info
 function infoTemps {
 	local hdNum
@@ -308,13 +357,37 @@ function infoTemps {
 	local ssdNum
 	local ssdTempCur
 	local ssdTempAv="0"
+	local hbaNum
+	local hbaTempCur
+	local hbaTempAv="0"
 
 	if [ ! "${#ssdName[@]}" = "0" ]; then
 		echo -e "Current SSD setpoint temp:\t$(targetTemp "${targetSSDriveTemp}")°C"
 	fi
 	echo -e "Current HD setpoint temp:\t$(targetTemp "${targetHDriveTemp}")°C\n"
-	if [ ! -z "${hbaTempSens[0]}" ]; then
-		echo -e "HBA Temp:\t$(ipmiSens "${hbaTempSens[0]}")°C"
+
+	if [ ! "${#hbaName[@]}" = "0" ]; then
+		for hbaNum in "${hbaName[@]}"; do
+# 			Get the temp for the current drive.
+			if [ -c "/dev/${hbaNum}" ]; then
+				# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
+				hbaTempCur="$(/mnt/jails/scripts/lsi_temp  "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
+			else
+				hbaTempCur="$(ipmiSens "${hbaNum}")"
+			fi
+# 			Start adding temps for an average.
+			hbaTempAv="$(( hbaTempAv + hbaTempCur ))"
+
+# 			Echo HBA's current temp
+			if [ -c "/dev/${hbaNum}" ]; then
+				echo -e "${hbaNum} Temp:\t${hbaTempCur}°C"
+			else
+				echo -e "HBA Temp:\t${hbaTempCur}°C"
+			fi
+		done
+		echo -e " "
+# 		Divide by number of drives for average.
+		hbaTempAv="$(bc <<< "scale=3;${hbaTempAv} / ${#hbaName[@]}")"
 	fi
 
 	for hdNum in "${hdName[@]}"; do
@@ -348,6 +421,9 @@ function infoTemps {
 	echo -e "\nAverage HD Temp: ${hdTempAv}°C"
 	if [ ! "${#ssdName[@]}" = "0" ]; then
 		echo -e "Average SSD Temp: ${ssdTempAv}°C"
+	fi
+	if [ ! "${#hbaName[@]}" = "0" ]; then
+		echo -e "HBA Temp Average: ${hbaTempAv}°C"
 	fi
 }
 
@@ -661,7 +737,7 @@ while true; do
 # 	Calculate HBA fan settings
 #
 	HBAsetPoint="${targetHBATemp}"
-	HBAprocessVar="$(ipmiSens "${hbaTempSens[0]}")"
+	HBAprocessVar="$(hbaTemp)"
 
 # 	Get the error.
 	HBAerrorK="$(bc <<< "scale=3;${HBAprocessVar} - ${HBAsetPoint}")"
