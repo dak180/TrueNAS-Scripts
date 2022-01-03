@@ -3,9 +3,20 @@
 
 # Set rules command prefix
 cmd="ipfw -q add"
-vpn="tun0"
 user="transmission"
 localLan="192.168.0.0/16"
+
+# Block connections by User until the vpn is ready
+ipfw -q -f flush add
+${cmd} 00193 deny all from any to any uid ${user}
+
+# Get the tunnel id dynamically
+vpn="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | head -n 1)"
+while [ -z "${vpn}" ] && [ "${try:="0"}" -le "20" ]; do
+	vpn="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | head -n 1)"
+	try="$(( try + 1 ))"
+	sleep 3
+done
 
 # Flush out the list before we begin
 ipfw -q -f flush add
@@ -14,7 +25,7 @@ ipfw -q -f flush add
 ${cmd} 00001 allow all from any to any via lo0
 
 # Allow any connection to/from VPN interface
-${cmd} 00010 allow all from any to any via ${vpn}
+${cmd} 00010 allow all from any to any via "${vpn[@]:="tun1"}"
 
 # Allow connection to/from LAN by User
 ${cmd} 00101 allow all from me to ${localLan} uid ${user}
