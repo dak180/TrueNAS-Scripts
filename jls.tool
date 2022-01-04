@@ -346,7 +346,7 @@ elif [ "${1}" = "elasticsearch" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" nat="1" nat_forwards="tcp(9200:9200),tcp(5601:5601)" allow_raw_sockets="1" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" priority="1" ip4_addr="vnet0|172.16.0.9/30"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" priority="1" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60ae0444 02ff60ae0445" vnet_default_interface="vlan60"; then
 		exit 1
 	fi
 
@@ -376,12 +376,16 @@ elif [ "${1}" = "elasticsearch" ]; then
 
 ###
 
+### Setup elasticsearch
+	sudo iocage exec -f "${jlName}" -- '/usr/local/lib/elasticsearch/bin/elasticsearch-plugin install --batch ingest-attachment'
+###
+
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m elasticsearch"
 
 	# Enable Services
-	sudo iocage exec -f "${jlName}" -- 'elasticsearch_enable="YES"'
-	sudo iocage exec -f "${jlName}" -- 'kibana_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc elasticsearch_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc kibana_enable="YES"'
 
 	#sudo iocage exec -f "${jlName}" -- "service elasticsearch start"
 	#sudo iocage exec -f "${jlName}" -- "service kibana start"
@@ -394,7 +398,7 @@ elif [ "${1}" = "elasticsearch" ]; then
 	sudo iocage set boot="1" "${jlName}"
 
 	# Check IP Address
-	sudo iocage get ip4_addr "${jlName}"
+	sudo iocage get vnet0_mac "${jlName}"
 
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
