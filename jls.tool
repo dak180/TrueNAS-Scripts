@@ -2,6 +2,7 @@
 
 # Config
 resolver60="search local.dak180.com local;nameserver 192.168.60.1"
+resolver04="search local.dak180.com local;nameserver 192.168.4.1"
 ioRelease="12.2-RELEASE" # LATEST
 
 function portS {
@@ -203,7 +204,7 @@ elif [ "${1}" = "unifi" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" interfaces="vnet0:bridge0" priority="1" resolver="none" vnet0_mac="02ff608700b4 02ff608700b5" vnet_default_interface="vlan10"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" interfaces="igb0:bridge4" priority="1" resolver="${resolver04}" vnet0_mac="02ff608700b4 02ff608700b5" vnet_default_interface="igb0"; then
 		exit 1
 	fi
 
