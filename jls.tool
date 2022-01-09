@@ -342,12 +342,12 @@ elif [ "${1}" = "znc" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "elasticsearch" ]; then
-	jlName="elasticsearch"
+elif [ "${1}" = "search" ]; then
+	jlName="search"
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" priority="1" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60ae0444 02ff60ae0445" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60ae0444 02ff60ae0445" vnet_default_interface="vlan60"; then
 		exit 1
 	fi
 
@@ -388,8 +388,8 @@ elif [ "${1}" = "elasticsearch" ]; then
 	sudo iocage exec -f "${jlName}" -- 'sysrc elasticsearch_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc kibana_enable="YES"'
 
-	#sudo iocage exec -f "${jlName}" -- "service elasticsearch start"
-	#sudo iocage exec -f "${jlName}" -- "service kibana start"
+	sudo iocage exec -f "${jlName}" -- "service elasticsearch start"
+	sudo iocage exec -f "${jlName}" -- "service kibana start"
 
 	# Final configuration
 	sudo iocage exec -f "${jlName}" -- "crontab -u elasticsearch /mnt/scripts/search/elasticsearch.crontab"
@@ -404,6 +404,7 @@ elif [ "${1}" = "elasticsearch" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
+	sudo iocage exec -f "${jlName}" -- "/mnt/scripts/search/search.cmd"
 elif [ "${1}" = "test" ]; then
 	jlName="test"
 
