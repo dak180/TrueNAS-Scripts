@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/local/bin/bash
 # shellcheck disable=SC2010
 
 
@@ -14,7 +14,7 @@ cd "${fscrawlerPth}" || exit 1
 
 for fsJob in "${fsJobs[@]}"; do
 	if [ ! -e "/var/run/fscrawler-${fsJob}.pid" ]; then
-		/usr/sbin/daemon -t "fscrawler-${fsJob}" -P "/var/run/daemon-fscrawler-${fsJob}.pid" -p "/var/run/fscrawler-${fsJob}.pid" -S -u "elasticsearch" bin/fscrawler --config_dir "${fscrawlerJobPth}" "${fsJob}" --restart --loop 1
+		/usr/sbin/daemon -t "fscrawler-${fsJob}" -P "/var/run/daemon-fscrawler-${fsJob}.pid" -p "/var/run/fscrawler-${fsJob}.pid" -S -u "elasticsearch" bin/fscrawler --config_dir "${fscrawlerJobPth}" "${fsJob}"
 	fi
 done
 
