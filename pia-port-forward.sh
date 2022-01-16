@@ -58,12 +58,23 @@ function re_check_connectivity() {
 	fi
 }
 
+function restart_vpn() {
+	# Config
+	local tunnelAdapters
+
+	service openvpn restart &> /dev/null
+	sleep 15
+
+	readarray -t tunnelAdapters <<< "$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1)"
+	if [ "${#tunnelAdapters[@]}" -gt "1" ] || [[ ! ${tunnelAdapters[*]} ]]; then
+		${firewallScript}
+	fi
+}
 
 function VPN_Status() {
 	# set adaptorName
 	# Config
 	local tunnelAdapter
-	local tunnelAdapters
 	local try
 
 	tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
@@ -72,11 +83,6 @@ function VPN_Status() {
 		try="$(( try + 1 ))"
 		sleep 3
 	done
-
-	readarray -t tunnelAdapters <<< "$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1)"
-	if [ "${#tunnelAdapters[@]}" -gt "1" ]; then
-		${firewallScript}
-	fi
 
 	if [ -z "${tunnelAdapter}" ]; then
 		return 1
@@ -262,8 +268,7 @@ echo "| Transmission Port Forward $(date '+%F %T')" 1>&2
 # Check that the vpn is up
 if ! check_for_connectivity; then
 	echo "| Restarting openvpn." 1>&2
-	service openvpn restart &> /dev/null
-	sleep 15
+	restart_vpn
 	tunnelAdapter="$(VPN_Status)"
 	re_check_connectivity
 else
