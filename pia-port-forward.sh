@@ -25,6 +25,7 @@ vpnUser="transmission"
 vpnDir="/usr/local/etc/openvpn"
 tempDir="/tmp/piaPort"
 curlMaxTime="15"
+firewallScript="/mnt/scripts/trans/ipfw.rules"
 payloadFile="${tempDir}/payload.sig"
 passFile="${vpnDir}/pass.txt"
 
@@ -62,14 +63,20 @@ function VPN_Status() {
 	# set adaptorName
 	# Config
 	local tunnelAdapter
+	local tunnelAdapters
 	local try
 
-	tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1)"
+	tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
 	while [ -z "${tunnelAdapter}" ] && [ "${try:=0}" -le "20" ]; do
-		tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1)"
+		tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
 		try="$(( try + 1 ))"
 		sleep 3
 	done
+
+	readarray -t tunnelAdapters <<< "$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1)"
+	if [ "${#tunnelAdapters[@]}" -gt "1" ]; then
+		${firewallScript}
+	fi
 
 	if [ -z "${tunnelAdapter}" ]; then
 		return 1

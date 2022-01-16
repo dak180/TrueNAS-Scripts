@@ -11,9 +11,9 @@ ipfw -q -f flush add
 ${cmd} 00193 deny all from any to any uid ${user}
 
 # Get the tunnel id dynamically
-vpn="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | head -n 1)"
+vpn="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
 while [ -z "${vpn}" ] && [ "${try:="0"}" -le "20" ]; do
-	vpn="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | head -n 1)"
+	vpn="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
 	try="$(( try + 1 ))"
 	sleep 3
 done
