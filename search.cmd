@@ -14,7 +14,7 @@ cd "${fscrawlerPth}" || exit 1
 
 for fsJob in "${fsJobs[@]}"; do
 	if [ ! -e "/var/run/fscrawler-${fsJob}.pid" ]; then
-		/usr/sbin/daemon -t "fscrawler-${fsJob}" -P "/var/run/daemon-fscrawler-${fsJob}.pid" -p "/var/run/fscrawler-${fsJob}.pid" -S -u "elasticsearch" bin/fscrawler --config_dir "${fscrawlerJobPth}" "${fsJob}"
+		/usr/sbin/daemon -t "fscrawler-${fsJob}" -P "/var/run/daemon-fscrawler-${fsJob}.pid" -p "/var/run/fscrawler-${fsJob}.pid" -S -u "elasticsearch" nice -20 bin/fscrawler --config_dir "${fscrawlerJobPth}" "${fsJob}"
 	fi
 done
 
