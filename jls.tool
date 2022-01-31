@@ -242,7 +242,7 @@ elif [ "${1}" = "pvr" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" depends="plex transmission" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60df8049 02ff60df804a" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mlock="1" allow_set_hostname="1" depends="plex transmission" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60df8049 02ff60df804a" vnet_default_interface="vlan60"; then
 		exit 1
 	fi
 
