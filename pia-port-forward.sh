@@ -65,10 +65,7 @@ function restart_vpn() {
 	service openvpn restart &> /dev/null
 	sleep 15
 
-	readarray -t tunnelAdapters <<< "$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1)"
-	if [ "${#tunnelAdapters[@]}" -gt "1" ] || [[ ! ${tunnelAdapters[*]} ]]; then
-		${firewallScript}
-	fi
+	${firewallScript}
 }
 
 function VPN_Status() {
