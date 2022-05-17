@@ -98,7 +98,7 @@ if [ "${1}" = "plex" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg youtube_dl youtube_dlc AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver
+	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg youtube_dl AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m plex"
