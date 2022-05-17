@@ -3,7 +3,7 @@
 # Config
 resolver60="search local.dak180.com local;nameserver 192.168.60.1"
 resolver04="search local.dak180.com local;nameserver 192.168.4.1"
-ioRelease="12.3-RELEASE" # LATEST
+ioRelease="13.1-RELEASE" # LATEST
 
 function portS {
 	sudo iocage pkg "${jlName}" install -y svnup
