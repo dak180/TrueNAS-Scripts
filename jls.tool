@@ -268,7 +268,7 @@ elif [ "${1}" = "pvr" ]; then
 	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mediainfo ca_root_nss
 	sudo iocage pkg "${jlName}" lock -y jackett
 
-### mono fixes
+### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
 	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz
 	sudo iocage pkg "${jlName}" lock -y mono6.8
 	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
