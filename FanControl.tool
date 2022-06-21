@@ -74,6 +74,7 @@ ada5
 # See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
 hbaName=(
 mpr0
+ses0
 )
 
 
@@ -321,8 +322,12 @@ function hbaTemp {
 	for hbaNum in "${hbaName[@]}"; do
 # 		Get the temp for the current hba.
 		if [ -c "/dev/${hbaNum}" ]; then
-			# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
-			hbaTempCur="$(/mnt/jails/scripts/lsi_temp  "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
+			if echo "${hbaNum}" | grep -q "mpr"; then
+				# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
+				hbaTempCur="$(/mnt/jails/scripts/lsi_temp "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
+			elif echo "${hbaNum}" | grep -q "ses"; then
+				hbaTempCur="$(sesutil map -u "/dev/${hbaNum}" --libxo:J | jq --arg hbaNum "${hbaNum}" -Mre '.sesutil.enclosures[] | select(.enc == $hbaNum) | .elements[] | select((.type == "Temperature Sensor") and (.status == "OK")) | .extra_status.temperature | values')"
+			fi
 		else
 			hbaTempCur="$(ipmiSens "${hbaNum}")"
 		fi
@@ -370,8 +375,12 @@ function infoTemps {
 		for hbaNum in "${hbaName[@]}"; do
 # 			Get the temp for the current drive.
 			if [ -c "/dev/${hbaNum}" ]; then
-				# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
-				hbaTempCur="$(/mnt/jails/scripts/lsi_temp  "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
+				if echo "${hbaNum}" | grep -q "mpr"; then
+					# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
+					hbaTempCur="$(/mnt/jails/scripts/lsi_temp "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
+				elif echo "${hbaNum}" | grep -q "ses"; then
+					hbaTempCur="$(sesutil map -u "/dev/${hbaNum}" --libxo:J | jq --arg hbaNum "${hbaNum}" -Mre '.sesutil.enclosures[] | select(.enc == $hbaNum) | .elements[] | select((.type == "Temperature Sensor") and (.status == "OK")) | .extra_status.temperature | values')"
+				fi
 			else
 				hbaTempCur="$(ipmiSens "${hbaNum}")"
 			fi
@@ -583,6 +592,7 @@ smartctl
 jq
 ipmitool
 sysctl
+sesutil
 )
 for command in "${commands[@]}"; do
 	if ! type "${command}" &> /dev/null; then
