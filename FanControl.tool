@@ -20,6 +20,7 @@ autoFanDuty="0" # Value that sets fan to auto based on CPU temp.
 minFanDuty="30" # Minimum effective value to set duty level to.
 maxFanDuty="100" # Maxim value to set duty level to.
 difFanDuty="10" # The difference maintained between intake and exhaust fans
+mixedFans="0" # Set to one if the same fans are responsible for both hdd and ssd
 
 
 # Temperatures in Celsius
@@ -72,6 +73,8 @@ ada5
 
 # List of HBAs
 # See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
+# sesutil map -u /dev/sesX will tell you if there are temp sensors in your
+# backplane or expander that you can read.
 hbaName=(
 mpr0
 ses0
@@ -115,7 +118,7 @@ fi
 
 # The command to set the desired fan duty levels.
 function ipmiWrite {
-	if ! ipmitool raw 0x3a 0x01 "${CPU_FAN[0]}" "${NIL_FAN[0]}" "${REAR_FAN[0]}" "${NIL_FAN[1]}" "${FRNT_FAN[0]}" "${FRNT_FAN[1]}" "${HBA_FAN[0]}" "${NIL_FAN[2]}"; then
+	if ! ipmitool raw 0x3a 0x01 "${CPU_FAN[0]}" "${NIL_FAN[0]}" "${REAR_FAN[0]}" "${NIL_FAN[1]}" "${FRNT_FAN[0]}" "${SSD_FAN[0]}" "${HBA_FAN[0]}" "${NIL_FAN[2]}"; then
 		return ${?}
 	fi
 }
@@ -143,6 +146,7 @@ function ipmiRead {
 
 	# Remap from MB supplied names.
 	HBA_FAN[0]="${FRNT_FAN[2]}"
+	SSD_FAN[0]="${FRNT_FAN[1]}"
 }
 
 EOF
@@ -491,6 +495,7 @@ function setFanDuty {
 	cpuFanSet="$(roundR "${1}")"
 	hbaFanSet="$(roundR "${2}")"
 	intakeFanSet="$(roundR "${3}")"
+	ssdFanSet="$(roundR "${4}")"
 	outputFanSet="$(bc <<< "scale=0;${intakeFanSet} - ${difFanDuty}")"
 
 	for cpuFan in "${!CPU_FAN[@]}"; do
@@ -507,6 +512,10 @@ function setFanDuty {
 
 	for hbaFan in "${!HBA_FAN[@]}"; do
 		HBA_FAN[${hbaFan}]="${hbaFanSet}"
+	done
+
+	for ssdFan in "${!SSD_FAN[@]}"; do
+		SSD_FAN[${ssdFan}]="${ssdFanSet}"
 	done
 }
 
@@ -773,14 +782,21 @@ while true; do
 # 	We only need to set the fans if something changes.
 	if [ ! "${prevHDControlOutput}" = "${qualHDControlOutput}" ] || [ ! "${prevHBAControlOutput}" = "${qualHBAControlOutput}" ] || [ ! "${prevSSDControlOutput}" = "${qualSSDControlOutput}" ]; then
 
-		if [ "${qualSSDControlOutput}" -gt "${qualHDControlOutput}" ]; then
-			qualDiskControlOutput="${qualSSDControlOutput}"
-		else
-			qualDiskControlOutput="${qualHDControlOutput}"
+		# For the case where the same fans are used for SSDs and HDDs
+		if [ "${mixedFans}" = "1" ]; then
+			if [ "${qualSSDControlOutput}" -gt "${qualHDControlOutput}" ]; then
+				qualDiskControlOutput="${qualSSDControlOutput}"
+			else
+				qualDiskControlOutput="${qualHDControlOutput}"
+			fi
 		fi
 
 # 		Set the duty levels for each fan type.
-		setFanDuty "${autoFanDuty}" "${qualHBAControlOutput}" "${qualDiskControlOutput}"
+		if [ "${mixedFans}" = "1" ]; then
+			setFanDuty "${autoFanDuty}" "${qualHBAControlOutput}" "${qualDiskControlOutput}" "${qualDiskControlOutput}"
+		else
+			setFanDuty "${autoFanDuty}" "${qualHBAControlOutput}" "${qualHDControlOutput}" "${qualSSDControlOutput}"
+		fi
 
 
 # 		Write out the new duty levels to ipmi.
