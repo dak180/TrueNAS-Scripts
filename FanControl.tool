@@ -73,8 +73,11 @@ ada5
 
 # List of HBAs
 # See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
+lsi_temp="/mnt/jails/scripts/lsi_temp" # path to compiled program ^
+
 # sesutil map -u /dev/sesX will tell you if there are temp sensors in your
 # backplane or expander that you can read.
+
 hbaName=(
 mpr0
 ses0
@@ -328,7 +331,7 @@ function hbaTemp {
 		if [ -c "/dev/${hbaNum}" ]; then
 			if echo "${hbaNum}" | grep -q "mpr"; then
 				# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
-				hbaTempCur="$(/mnt/jails/scripts/lsi_temp "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
+				hbaTempCur="$(${lsi_temp} "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
 			elif echo "${hbaNum}" | grep -q "ses"; then
 				hbaTempCur="$(sesutil map -u "/dev/${hbaNum}" --libxo:J | jq --arg hbaNum "${hbaNum}" -Mre '.sesutil.enclosures[] | select(.enc == $hbaNum) | .elements[] | select((.type == "Temperature Sensor") and (.status == "OK")) | .extra_status.temperature | values')"
 			fi
