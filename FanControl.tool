@@ -259,12 +259,18 @@ function hdTemp {
 	local hdTempCur
 	local hdTempAv="0"
 	local hdTempMx="0"
+	local hdComp="0"
 
 	for hdNum in "${hdName[@]}"; do
 # 		Get the temp for the current drive.
 		hdTempCur="$(smartctl -aj "/dev/${hdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
+
+#		Track non responsive drives
+		if [ -z "${hdTempCur}" ]; then
+			hdComp="$(( hdComp + 1 ))"
+		if
 
 # 		Keep track of the highest current temp
 		if [ "${hdTempMx}" -gt "${hdTempCur}" ]; then
@@ -274,7 +280,7 @@ function hdTemp {
 		fi
 	done
 # 	Divide by number of drives for average.
-	hdTempAv="$(bc <<< "scale=3;${hdTempAv} / ${#hdName[@]}")"
+	hdTempAv="$(bc <<< "scale=3;${hdTempAv} / (${#hdName[@]} - ${hdComp})")"
 
 # 	If the hottest drive matches/exceeds the max temp use that instead
 # 	of the average.
@@ -292,12 +298,18 @@ function ssdTemp {
 	local ssdTempCur
 	local ssdTempAv="0"
 	local ssdTempMx="0"
+	local ssdComp="0"
 
 	for ssdNum in "${ssdName[@]}"; do
 # 		Get the temp for the current drive.
 		ssdTempCur="$(smartctl -aj "/dev/${ssdNum}" | jq -Mre '.temperature.current | values')"
 # 		Start adding temps for an average.
 		ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
+
+#		Track non responsive drives
+		if [ -z "${ssdTempCur}" ]; then
+			hdComp="$(( ssdComp + 1 ))"
+		if
 
 # 		Keep track of the highest current temp
 		if [ "${ssdTempMx}" -gt "${ssdTempCur}" ]; then
@@ -307,7 +319,7 @@ function ssdTemp {
 		fi
 	done
 # 	Divide by number of drives for average.
-	ssdTempAv="$(bc <<< "scale=3;${ssdTempAv} / ${#ssdName[@]}")"
+	ssdTempAv="$(bc <<< "scale=3;${ssdTempAv} / (${#ssdName[@]} - ${ssdComp})")"
 
 # 	If the hottest drive matches/exceeds the max temp use that instead
 # 	of the average.
