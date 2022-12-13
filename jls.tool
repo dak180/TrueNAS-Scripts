@@ -237,6 +237,47 @@ elif [ "${1}" = "unifi" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
+elif [ "${1}" = "netdata" ]; then
+	jlName="netdata"
+
+
+	# Create jail
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" nat="1" nat_forwards="tcp(19999:19999)" allow_raw_sockets="1" allow_set_hostname="1" mount_devfs="1" mount_fdescfs="1" mount_procfs="1" securelevel="-1" allow_sysvipc="1" sysvmsg="new" sysvsem="new" sysvshm="new" allow_mount_devfs="1" allow_mount_procfs="1" interfaces="vnet0:bridge0" priority="99" vnet0_mac="02ff602be694 02ff602be695"; then
+		exit 1
+	fi
+
+	# Set Mounts
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/netdata/" "/var/cache/netdata/" "/var/db/netdata/" "/mnt/smartd/"'
+
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/config /usr/local/etc/netdata/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/cache /var/cache/netdata/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/db /var/db/netdata/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/smartd /mnt/smartd/ nullfs rw 0 0"
+
+	# Generic Configuration
+	pkg_repo
+	usrpths
+	jl_init
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/netdata/.bash_history" "/root/.bash_history"'
+
+	# Install packages
+	sudo iocage pkg "${jlName}" install -y netdata
+
+	# Enable Services
+	sudo iocage exec -f "${jlName}" -- 'sysrc netdata_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- "service netdata start"
+
+	# Set jail to start at boot.
+	sudo iocage stop "${jlName}"
+	sudo iocage set boot="1" "${jlName}"
+
+	# Check MAC Address
+	sudo iocage get vnet0_mac "${jlName}"
+
+	# Create initial snapshot
+	sudo iocage snapshot "${jlName}" -n InitialConfiguration
+	sudo iocage start "${jlName}"
 elif [ "${1}" = "pvr" ]; then
 	jlName="pvr"
 
