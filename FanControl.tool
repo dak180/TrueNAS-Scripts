@@ -378,9 +378,11 @@ function infoTemps {
 	local hdNum
 	local hdTempCur
 	local hdTempAv="0"
+	local hdComp="0"
 	local ssdNum
 	local ssdTempCur
 	local ssdTempAv="0"
+	local ssdComp="0"
 	local hbaNum
 	local hbaTempCur
 	local hbaTempAv="0"
@@ -424,11 +426,19 @@ function infoTemps {
 # 		Start adding temps for an average.
 		hdTempAv="$(( hdTempAv + hdTempCur ))"
 
-# 		Echo HD's current temp
-		echo -e "${hdNum} Temp:\t${hdTempCur}°C"
+#		Track non responsive drives
+		if [ -z "${hdTempCur}" ]; then
+			hdComp="$(( hdComp + 1 ))"
+			echo -e "${hdNum} Temp:\tN/A"
+		else
+# 			Echo HD's current temp
+			echo -e "${hdNum} Temp:\t${hdTempCur}°C"
+		fi
+
+
 	done
 # 	Divide by number of drives for average.
-	hdTempAv="$(bc <<< "scale=3;${hdTempAv} / ${#hdName[@]}")"
+	hdTempAv="$(bc <<< "scale=3;${hdTempAv} / (${#hdName[@]} - ${hdComp})")"
 
 
 	if [ ! "${#ssdName[@]}" = "0" ]; then
@@ -438,11 +448,17 @@ function infoTemps {
 # 			Start adding temps for an average.
 			ssdTempAv="$(( ssdTempAv + ssdTempCur ))"
 
-# 			Echo SSD's current temp
-			echo -e "${ssdNum} Temp:\t${ssdTempCur}°C"
+#			Track non responsive drives
+			if [ -z "${ssdTempCur}" ]; then
+				hdComp="$(( ssdComp + 1 ))"
+				echo -e "${ssdNum} Temp:\tN/A"
+			else
+# 				Echo SSD's current temp
+				echo -e "${ssdNum} Temp:\t${ssdTempCur}°C"
+			fi
 		done
 # 		Divide by number of drives for average.
-		ssdTempAv="$(bc <<< "scale=3;${ssdTempAv} / ${#ssdName[@]}")"
+		ssdTempAv="$(bc <<< "scale=3;${ssdTempAv} / (${#ssdName[@]} - ${ssdComp})")"
 	fi
 
 
