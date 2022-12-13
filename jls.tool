@@ -221,7 +221,7 @@ elif [ "${1}" = "unifi" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y unifi5
+	sudo iocage pkg "${jlName}" install -y unifi7
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
