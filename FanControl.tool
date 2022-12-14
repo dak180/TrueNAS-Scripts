@@ -649,6 +649,13 @@ if [ ! "${defaultFile}" = "0" ]; then
 fi
 
 
+# Must be run as root
+if [ ! "$(whoami)" = "root" ]; then
+	echo "Must be run as root." >&2
+	exit 1
+fi
+
+
 #
 # Alternate modes
 #
@@ -664,13 +671,6 @@ elif [ "${scAction}" = "fans" ]; then
 	exit 0
 elif [ "${scAction}" = "daemon" ]; then
 	: # nothing currently needed here
-fi
-
-
-# Must be run as root
-if [ ! "$(whoami)" = "root" ]; then
-	echo "Must be run as root." >&2
-	exit 1
 fi
 
 
