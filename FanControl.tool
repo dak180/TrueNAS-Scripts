@@ -681,7 +681,7 @@ function scExit {
 	exit 0
 }
 
-trap 'scExit' EXIT
+trap "scExit" EXIT
 
 
 #
