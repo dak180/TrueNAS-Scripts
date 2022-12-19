@@ -260,6 +260,8 @@ elif [ "${1}" = "netdata" ]; then
 	usrpths
 	jl_init
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/netdata/.bash_history" "/root/.bash_history"'
+	sudo iocage exec -f "${jlName}" -- "cp -sf /mnt/scripts/netdata/netdata.logrotate /usr/local/etc/logrotate.d/netdata"
+	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/netdata/netdata.crontab"
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y netdata
