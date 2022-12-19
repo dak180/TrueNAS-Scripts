@@ -5,7 +5,6 @@
 #
 # shellcheck disable=SC2236
 #
-# ipmitool raw 0x3a 0x01  ${CPU_FAN1} ${Reserved} ${REAR_FAN1} ${REAR_FAN2} ${FRNT_FAN1} ${FRNT_FAN2} ${FRNT_FAN3} ${Reserved}
 
 # Write out a default config file
 function fcConfig {
@@ -119,6 +118,9 @@ fi
 #
 # Make sure that you set values here corectly for your board.
 
+# The following is a template for the ASRockRack E3C236D4U board other ASRockRack
+# boards may use a similar call.
+# ipmitool raw 0x3a 0x01  ${CPU_FAN1} ${Reserved} ${REAR_FAN1} ${REAR_FAN2} ${FRNT_FAN1} ${FRNT_FAN2} ${FRNT_FAN3} ${Reserved}
 # The command to set the desired fan duty levels.
 function ipmiWrite {
 	if ! ipmitool raw 0x3a 0x01 "${CPU_FAN[0]}" "${NIL_FAN[0]}" "${REAR_FAN[0]}" "${NIL_FAN[1]}" "${FRNT_FAN[0]}" "${SSD_FAN[0]}" "${HBA_FAN[0]}" "${NIL_FAN[2]}"; then
@@ -127,7 +129,7 @@ function ipmiWrite {
 }
 
 # A function to read the current fan duty levels.
-# It conversts hex values to decimal and seperates them by type.
+# It converts hex values to decimal and seperates them by type.
 function ipmiRead {
 	local rawFan
 	local rawFanArray
