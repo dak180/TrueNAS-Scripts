@@ -264,7 +264,7 @@ elif [ "${1}" = "netdata" ]; then
 	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/netdata/netdata.crontab"
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y netdata
+	sudo iocage pkg "${jlName}" install -y netdata netdata-go smartmontools
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc netdata_enable="YES"'
