@@ -300,6 +300,7 @@ function ssdTemp {
 	local ssdTempCur
 	local ssdTempAv="0"
 	local ssdTempMx="0"
+	local ssdTempMn
 	local ssdComp="0"
 
 	for ssdNum in "${ssdName[@]}"; do
@@ -313,6 +314,13 @@ function ssdTemp {
 			ssdComp="$(( ssdComp + 1 ))"
 		fi
 
+#		Keep track of the lowest current temp
+		if [ "${ssdTempMn:="${ssdTempCur}"}" -lt "${ssdTempCur}" ]; then
+			true
+		else
+			ssdTempMn="${ssdTempCur}"
+		fi
+
 # 		Keep track of the highest current temp
 		if [ "${ssdTempMx}" -gt "${ssdTempCur}" ]; then
 			true
@@ -320,6 +328,11 @@ function ssdTemp {
 			ssdTempMx="${ssdTempCur}"
 		fi
 	done
+
+	if [ "$((ssdTempMx - ssdTempMn))" -ge "10" ]; then
+		ssdComp="$(( ssdComp + 1 ))"
+	fi
+
 # 	Divide by number of drives for average.
 	ssdTempAv="$(bc <<< "scale=3;${ssdTempAv} / (${#ssdName[@]} - ${ssdComp})")"
 
