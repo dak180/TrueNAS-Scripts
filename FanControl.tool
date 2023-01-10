@@ -310,7 +310,7 @@ function ssdTemp {
 
 #		Track non responsive drives
 		if [ -z "${ssdTempCur}" ]; then
-			hdComp="$(( ssdComp + 1 ))"
+			ssdComp="$(( ssdComp + 1 ))"
 		fi
 
 # 		Keep track of the highest current temp
