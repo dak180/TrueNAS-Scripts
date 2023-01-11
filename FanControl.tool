@@ -465,7 +465,7 @@ function infoTemps {
 
 #			Track non responsive drives
 			if [ -z "${ssdTempCur}" ]; then
-				hdComp="$(( ssdComp + 1 ))"
+				ssdComp="$(( ssdComp + 1 ))"
 				echo -e "${ssdNum} Temp:\tN/A"
 			else
 # 				Echo SSD's current temp
