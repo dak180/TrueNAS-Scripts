@@ -397,6 +397,7 @@ function infoTemps {
 	local ssdNum
 	local ssdTempCur
 	local ssdTempAv="0"
+	local ssdTempMn
 	local ssdComp="0"
 	local hbaNum
 	local hbaTempCur
@@ -471,7 +472,19 @@ function infoTemps {
 # 				Echo SSD's current temp
 				echo -e "${ssdNum} Temp:\t${ssdTempCur}°C"
 			fi
+
+#			Keep track of the lowest current temp
+			if [ "${ssdTempMn:="${ssdTempCur}"}" -lt "${ssdTempCur}" ]; then
+				true
+			else
+				ssdTempMn="${ssdTempCur}"
+			fi
 		done
+
+		if [ "$((ssdTempMx - ssdTempMn))" -ge "10" ]; then
+			ssdComp="$(( ssdComp + 1 ))"
+		fi
+
 # 		Divide by number of drives for average.
 		ssdTempAv="$(bc <<< "scale=3;${ssdTempAv} / (${#ssdName[@]} - ${ssdComp})")"
 	fi
