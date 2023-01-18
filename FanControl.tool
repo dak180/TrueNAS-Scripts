@@ -398,6 +398,7 @@ function infoTemps {
 	local ssdTempCur
 	local ssdTempAv="0"
 	local ssdTempMn
+	local ssdTempMx="0"
 	local ssdComp="0"
 	local hbaNum
 	local hbaTempCur
@@ -410,7 +411,7 @@ function infoTemps {
 
 	if [ ! "${#hbaName[@]}" = "0" ]; then
 		for hbaNum in "${hbaName[@]}"; do
-# 			Get the temp for the current drive.
+# 			Get the temp for the current hba.
 			if [ -c "/dev/${hbaNum}" ]; then
 				if echo "${hbaNum}" | grep -q "mpr"; then
 					# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
@@ -478,6 +479,13 @@ function infoTemps {
 				true
 			else
 				ssdTempMn="${ssdTempCur}"
+			fi
+
+# 			Keep track of the highest current temp
+			if [ "${ssdTempMx}" -gt "${ssdTempCur}" ]; then
+				true
+			else
+				ssdTempMx="${ssdTempCur}"
 			fi
 		done
 
