@@ -78,7 +78,7 @@ if [ "${1}" = "plex" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_mount="1" allow_mount_devfs="1" allow_raw_sockets="1" allow_set_hostname="1" devfs_ruleset="109" enforce_statfs="1" interfaces="vnet0:bridge0" priority="1" vnet0_mac="B213DD984A80 B213DD984A7F" vnet_default_interface="vlan10"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_mount="1" allow_mount_devfs="1" ip6="disable" allow_raw_sockets="1" allow_set_hostname="1" devfs_ruleset="109" enforce_statfs="1" interfaces="vnet0:bridge0" priority="1" vnet0_mac="B213DD984A80 B213DD984A7F" vnet_default_interface="vlan10"; then
 		exit 1
 	fi
 
@@ -129,7 +129,7 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" allow_tun="1" interfaces="vnet0:bridge60" priority="3" resolver="${resolver60}" vnet0_mac="4a3a78771683 4a3a78771682" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" ip6="disable" allow_tun="1" interfaces="vnet0:bridge60" priority="3" resolver="${resolver60}" vnet0_mac="4a3a78771683 4a3a78771682" vnet_default_interface="vlan60"; then
 		exit 1
 	fi
 
@@ -285,7 +285,7 @@ elif [ "${1}" = "pvr" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mlock="1" allow_set_hostname="1" depends="plex transmission" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60df8049 02ff60df804a" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mlock="1" ip6="disable" allow_set_hostname="1" depends="plex transmission" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60df8049 02ff60df804a" vnet_default_interface="vlan60"; then
 		exit 1
 	fi
 
@@ -390,7 +390,7 @@ elif [ "${1}" = "search" ]; then
 
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60ae0444 02ff60ae0445" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mount="1" ip6="disable" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60ae0444 02ff60ae0445" vnet_default_interface="vlan60"; then
 		exit 1
 	fi
 
