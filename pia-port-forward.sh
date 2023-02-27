@@ -28,6 +28,9 @@ curlMaxTime="15"
 firewallScript="/mnt/scripts/trans/ipfw.rules"
 payloadFile="${tempDir}/payload.sig"
 passFile="${vpnDir}/pass.txt"
+varFile="${vpnDir}/vars.tool"
+confFile="${vpnDir}/openvpn.conf"
+gateFile="${tempDir}/gateway.txt"
 
 mapfile -t auth < "${passFile}"
 PIA_USER="${auth[0]}"
@@ -59,8 +62,6 @@ function re_check_connectivity() {
 }
 
 function restart_vpn() {
-	# Config
-	local tunnelAdapters
 
 	service openvpn restart &> /dev/null
 	sleep 15
@@ -108,15 +109,31 @@ function is_port_forwarded() {
 	fi
 }
 
+function write_gateway_script() {
+	tee "${varFile}" <<- EOL
+		#!/usr/local/bin/bash
+
+
+		/bin/echo "\${route_vpn_gateway}" > "${gateFile}"
+
+EOL
+	chmod +x "${varFile}"
+	tee -a "${confFile}" <<< "up \'${varFile}\'"
+	restart_vpn
+}
+
 function get_gateway_ip() {
 	# get gateway ip address
 	# Config
-	local tunnelAdapter
 	local gatewayAddress
 
-	tunnelAdapter="${1}"
+	if [ ! -x "${varFile}" ]; then
+		write_gateway_script
+	elif [ ! -s "${gateFile}" ]; then
+		restart_vpn
+	fi
 
-	gatewayAddress="$(ifconfig "${tunnelAdapter}" | grep "inet " | cut -d\  -f4)"
+	gatewayAddress="$(cat "${gateFile}")"
 
 	echo "${gatewayAddress}"
 	return 0
@@ -274,7 +291,7 @@ fi
 
 
 # Parse Payload
-payloadPlusSig="$(get_payload_and_sig "$(get_auth_token "${tunnelAdapter}")" "$(get_gateway_ip "${tunnelAdapter}")" "${tunnelAdapter}")"
+payloadPlusSig="$(get_payload_and_sig "$(get_auth_token "${tunnelAdapter}")" "$(get_gateway_ip)" "${tunnelAdapter}")"
 
 # Try to catch error conditions
 if [ -z "${payloadPlusSig}" ]; then
@@ -299,6 +316,6 @@ if [ "${portStatus}" = "1" ]; then
 fi
 
 # Refresh the port
-refresh_port "${payLoad}" "${payloadSig}" "$(get_gateway_ip "${tunnelAdapter}")" "${tunnelAdapter}"
+refresh_port "${payLoad}" "${payloadSig}" "$(get_gateway_ip)" "${tunnelAdapter}"
 
 exit 0
