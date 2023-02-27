@@ -52,7 +52,7 @@ function check_for_connectivity() {
 
 function re_check_connectivity() {
 	# google.com
-	if sudo -u "${vpnUser}" -- nc -zw 1 google.com 80; then
+	if sudo -u "${vpnUser}" -- nc -zw 1 google.com 80 &> /dev/null; then
 		echo "| VPN connection restored." 1>&2
 		return 0
 	else
@@ -63,6 +63,7 @@ function re_check_connectivity() {
 
 function restart_vpn() {
 
+	echo "| Restarting openvpn." 1>&2
 	service openvpn restart &> /dev/null
 	sleep 15
 
@@ -153,9 +154,9 @@ function get_auth_token() {
 	if [ -s "${tokenFile}" ]; then
 		authToken="$(jq -Mre ".payload" < "${tokenFile}" | base64 -d | jq -Mre ".token")"
 	else
-		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" -u "${PIA_USER}:${PIA_PASS}" "https://10.0.0.1/authv3/generateToken" | jq -Mre '.token')"
+		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" -u "${PIA_USER}:${PIA_PASS}" "https://10.0.0.1/authv3/generateToken" 2> /dev/null | jq -Mre '.token')"
 
-    	echo "| Acquired new auth token." 1>&2
+    	echo "| Acquiring new auth token." 1>&2
 	fi
 
 	if [ ! -z "${authToken}" ]; then
@@ -187,7 +188,7 @@ function get_payload_and_sig() {
 	if [ -s "${payloadFile}" ]; then
 		json="$(cat "${payloadFile}")"
 	else
-		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "token=${authToken}" "https://${gatewayAddress}:19999/getSignature" | jq -Mre .)"
+		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "token=${authToken}" "https://${gatewayAddress}:19999/getSignature" 2> /dev/null | jq -Mre .)"
 
 		printf "%s" "${json}" > "${payloadFile}"
     	echo "| Acquired new Signature." 1>&2
@@ -252,13 +253,13 @@ function refresh_port() {
 	gatewayAddress="${3}"
 	adaptorName="${4}"
 
-	json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${gatewayAddress}:19999/bindPort")"
+	json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${gatewayAddress}:19999/bindPort" 2> /dev/null)"
 	bindStatus="$(echo "${json}" | jq -Mre ".status")"
 	bindMessage="$(echo "${json}" | jq -Mre ".message")"
 
 
 	if [ ! "${bindStatus}" = "OK" ]; then
-		echo "| Failed to bind the port: ${bindStatus}; ${bindMessage}" 1>&2
+		echo "| Failed to bind the port: ${bindStatus:="Bad Gateway"}; ${bindMessage:="Incorrect gateway address"}" 1>&2
 		exit 1
 	else
 		echo "| Status: ${bindMessage}."
@@ -281,7 +282,6 @@ echo "| Transmission Port Forward $(date '+%F %T')" 1>&2
 
 # Check that the vpn is up
 if ! check_for_connectivity; then
-	echo "| Restarting openvpn." 1>&2
 	restart_vpn
 	tunnelAdapter="$(VPN_Status)"
 	re_check_connectivity
