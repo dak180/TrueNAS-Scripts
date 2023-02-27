@@ -893,5 +893,5 @@ while true; do
 	prevHBAControlOutput="${qualHBAControlOutput}"
 
 
-	sleep "$(( 60 * diskCheckTempInterval ))"
+	sleep "$(bc <<< "scale=0;60 * ${diskCheckTempInterval}" | sed -e 's:.0$::')"
 done
