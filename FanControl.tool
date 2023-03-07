@@ -712,7 +712,7 @@ fi
 
 # Set fans to auto on exit
 function scExit {
-	setFanDuty "${autoFanDuty}" "${autoFanDuty}" "${autoFanDuty}"
+	setFanDuty "${autoFanDuty}" "${autoFanDuty}" "${autoFanDuty}" "${autoFanDuty}"
 	ipmiWrite
 	exit 0
 }
@@ -728,7 +728,7 @@ trap "scExit" EXIT
 ipmiRead
 
 # Start fans at max
-setFanDuty "100" "100" "100"
+setFanDuty "100" "100" "100" "100"
 
 if ! ipmiWrite; then
 	exit 1
