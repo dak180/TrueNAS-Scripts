@@ -3,6 +3,14 @@
 # Config
 resolver60="search local.dak180.com local;nameserver 192.168.60.1"
 resolver04="search local.dak180.com local;nameserver 192.168.4.1"
+
+mediaPth="/mnt/data/Media"
+jDataPath="/mnt/jails/Data"
+torntPath="/mnt/data/torrents"
+backupPth="/mnt/data/Backups"
+scriptPth="/mnt/jails/scripts"
+thingPath="/mnt/data/Things"
+
 ioRelease="13.1-RELEASE" # LATEST
 
 function portS {
@@ -26,7 +34,7 @@ function usrpths {
 function comn_mnt_pnts {
 	# Sets script and user mount points
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/"'
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/scripts /mnt/scripts/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${scriptPth} /mnt/scripts/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180 nullfs rw 0 0"
 }
 
@@ -86,10 +94,10 @@ if [ "${1}" = "plex" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/plexdata/" "/mnt/dbBackup/" "/var/db/tautulli/"'
 
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /media/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/plex /usr/local/plexdata/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Backups/plex /mnt/dbBackup/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/Tautulli /var/db/tautulli/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${mediaPth} /media/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/plex /usr/local/plexdata/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${backupPth}/plex /mnt/dbBackup/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/Tautulli /var/db/tautulli/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -137,11 +145,11 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/incoming/" "/mnt/torrents/" "/mnt/transmission/" "/var/db/transmission/" "/usr/local/etc/openvpn/"'
 
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /mnt/incoming/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/data/torrents /mnt/torrents/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Things/Torrents /mnt/transmission/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/transmission /var/db/transmission/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/openvpn /usr/local/etc/openvpn/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${mediaPth} /mnt/incoming/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${torntPath} /mnt/torrents/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${thingPath}/Torrents /mnt/transmission/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/transmission /var/db/transmission/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/openvpn /usr/local/etc/openvpn/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -212,7 +220,7 @@ elif [ "${1}" = "unifi" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/share/java/unifi/"'
 
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/unifi /usr/local/share/java/unifi/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/unifi /usr/local/share/java/unifi/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -250,10 +258,10 @@ elif [ "${1}" = "netdata" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/netdata/" "/var/cache/netdata/" "/var/db/netdata/" "/mnt/smartd/"'
 
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/config /usr/local/etc/netdata/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/cache /var/cache/netdata/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/db /var/db/netdata/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/netdata/smartd /mnt/smartd/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/netdata/config /usr/local/etc/netdata/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/netdata/cache /var/cache/netdata/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/netdata/db /var/db/netdata/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/netdata/smartd /mnt/smartd/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -293,13 +301,13 @@ elif [ "${1}" = "pvr" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/jackett/" "/usr/local/bazarr/"'
 
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /media/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/data/torrents /mnt/torrents/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Things/Torrents /mnt/transmission/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/sonarr /usr/local/sonarr/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/radarr /usr/local/radarr/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/jackett /usr/local/jackett/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/bazarr /usr/local/bazarr/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${mediaPth} /media/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${torntPath} /mnt/torrents/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${thingPath}/Torrents /mnt/transmission/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/sonarr /usr/local/sonarr/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/radarr /usr/local/radarr/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/jackett /usr/local/jackett/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/bazarr /usr/local/bazarr/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -359,7 +367,7 @@ elif [ "${1}" = "znc" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/znc/"'
 
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/znc/ /usr/local/etc/znc/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/znc/ /usr/local/etc/znc/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -399,12 +407,12 @@ elif [ "${1}" = "search" ]; then
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/fscrawler/" "/usr/local/etc/elasticsearch/" "/var/db/elasticsearch" "/usr/local/etc/kibana" "/mnt/Media/" "/mnt/Things/"'
 
 	sudo iocage fstab -a "${jlName}" "proc   /proc    procfs   rw  0  0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/fscrawler /mnt/fscrawler/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/elasticsearch/etc /usr/local/etc/elasticsearch/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/elasticsearch/db /var/db/elasticsearch/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/Data/kibana /usr/local/etc/kibana/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Media /mnt/Media/ nullfs ro 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/data/Things /mnt/Things/ nullfs ro 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/fscrawler /mnt/fscrawler/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/elasticsearch/etc /usr/local/etc/elasticsearch/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/elasticsearch/db /var/db/elasticsearch/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/kibana /usr/local/etc/kibana/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${mediaPth} /mnt/Media/ nullfs ro 0 0"
+	sudo iocage fstab -a "${jlName}" "${thingPath} /mnt/Things/ nullfs ro 0 0"
 
 	# Generic Configuration
 	pkg_repo
