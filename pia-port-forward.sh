@@ -1,6 +1,6 @@
 #!/usr/local/bin/bash
 
-# Copyright (c) 2020 dak180 and contributors. See
+# Copyright (c) 2023 dak180 and contributors. See
 # https://opensource.org/licenses/mit-license.php
 #
 # Enable port forwarding for transmission specifically in FreeBSD.
