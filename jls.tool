@@ -1,17 +1,352 @@
 #!/bin/bash
+# shellcheck disable=SC2236,SC2086,SC2068
 
 # Config
+
+# Write out a default config file
+function jConfig {
+	tee > "${configFile}" <<"EOF"
+# Set this to 0 to enable
+defaultFile="1"
+
+# Jail creation config file
+configVers="0" # Do not edit this.
+
+# Resolver lines for different vlans for jails to connect to (vnets must already be defined in the network -> interface section of the gui). Necessary only if the vlan is different than the one used for the web interface.
+# If you do not have vlan this can be ignored.
 resolver60="search local.dak180.com local;nameserver 192.168.60.1"
 resolver04="search local.dak180.com local;nameserver 192.168.4.1"
 
-mediaPth="/mnt/data/Media"
-jDataPath="/mnt/jails/Data"
-torntPath="/mnt/data/torrents"
-backupPth="/mnt/data/Backups"
-scriptPth="/mnt/jails/scripts"
-thingPath="/mnt/data/Things"
-
+# The release to base jails on.
 ioRelease="13.1-RELEASE" # LATEST
+
+# Common paths to be mounted into jails (relative to the host).
+mediaPth="/mnt/data/Media" # path to media; will be mounted to `/media` in jails
+jDataPath="/mnt/jails/Data" # prefix path to where persistan jail application data will be ie: `/mnt/jails/Data/znc` these datasets will need to be created prior to making the jail
+torntPath="/mnt/data/torrents" # a temp location for torrents to land so a different Record Size can be set
+backupPth="/mnt/data/Backups" # prefix path to backup locations ie: `/mnt/data/Backups/plex`
+scriptPth="/mnt/jails/scripts" # path to a common set of scripts
+thingPath="/mnt/data/Things" # path to a general SMB share
+userPth="/mnt/jails/users/dak180" # path to a full user directory
+
+# Common paths in jails (relative to the jail).
+usrpth="/mnt/scripts/user" # where user files are loaded into jails ie: .bashrc .profile .nanorc .config/*
+
+# Common Package list that will be installed into every jail
+tee "/tmp/pkg.json" << EOL
+{
+	"pkgs": [
+	"bash",
+	"bash-completion",
+	"tmux",
+	"wget",
+	"curl",
+	"nano",
+	"sudo",
+	"logrotate",
+	"fortune-mod-freebsd-classic",
+	"fortune-mod-bofh",
+	"pkg-provides"
+	]
+}
+
+EOL
+
+##### Jail specific settings
+# In the form: declare -A _<jail>
+# And then for each setting: _<jail>[<setting>]="<value>"
+# See https://www.freebsd.org/cgi/man.cgi?iocage#PROPERTIES for some more details on what can be set in <ipset>.
+
+# Plex
+{
+# Checklist before creating this jail:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `plex` is created on the main system with UID `972`
+# Ensure a user named `tautulli` is created on the main system with UID `892`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${scriptPth} is set and is r/w by `jailmedia`
+# ${jDataPath}/plex is set and is owned by `plex`
+# ${backupPth}/plex is set and is owned by `plex`
+# ${jDataPath}/Tautulli is set and is owned by `tautulli`
+# See https://www.truenas.com/community/threads/activating-plex-hardware-acceleration.75391/#post-525442 for hardware transcoding setup
+
+
+# In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP and a fixed MAC address pair to go with it.
+_plex=(
+vnet="1"
+allow_raw_sockets="1"
+ip6="disable"
+interfaces="vnet0:bridge0"
+vnet_default_interface="vlan10"
+bpf="1"
+dhcp="1"
+vnet0_mac="B213DD984A80 B213DD984A7F"
+)
+
+# Setting a custom devfs rule set; used for setting up hardware transcodes, comment to disable
+_plexDevfs="109"
+
+if [ ! -z "${_plex_devfs}" ]; then
+_plex+=(
+devfs_ruleset="${_plex_devfs}"
+)
+fi
+
+}
+
+# Transmission
+{
+# Checklist before creating this jail:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `transmission` is created on the main system with UID `921`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${scriptPth} is set and is r/w by `jailmedia`
+# ${jDataPath}/transmission is set and is owned by `transmission`
+# ${jDataPath}/openvpn is set and is owned by `root`
+# ${torntPath} is set and is owned by `transmission` and is r/w by `jailmedia`
+# ${thingPath}/Torrents is set and is r/w by `jailmedia`
+# pia-port-forward.sh, ipfw.rules, transmission.crontab and transmission.logrotate are in ${scriptPth}/trans
+
+
+# In this example we are disabling ipv6, allowing tun interfaces, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, and a fixed MAC address pair to go with it.
+_transmission=(
+vnet="1"
+allow_raw_sockets="1"
+ip6="disable"
+allow_tun="1"
+interfaces="vnet0:bridge60"
+vnet_default_interface="vlan60"
+resolver="${resolver60}"
+bpf="1"
+dhcp="1"
+vnet0_mac="4a3a78771683 4a3a78771682"
+)
+
+# Name of openvpn config file
+_transmission_openvpn_configfile="openvpn.conf"
+
+# Static route to allow cross vlan communication; comment to disable
+_transmission_static="192.168.0.0/16 192.168.60.1"
+
+}
+
+# Unifi
+{
+# Checklist before creating this jail:
+# Ensure a user named `unifi` is created on the main system with UID `975`
+# ${jDataPath}/unifi is set and is owned by `unifi`
+# ${scriptPth} is set and is r/w by `jailmedia`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP and a fixed MAC address pair to go with it.
+_unifi=(
+vnet="1"
+allow_raw_sockets="1"
+interfaces="igb0:bridge4"
+vnet_default_interface="igb0"
+resolver="${resolver04}"
+bpf="1"
+dhcp="1"
+vnet0_mac="02ff608700b4 02ff608700b5"
+)
+
+}
+
+# Netdata
+{
+# Checklist before creating this jail:
+# Ensure a user named `netdata` is created on the main system with UID `302`
+# ${jDataPath}/netdata is set and is owned by `netdata`
+# ${jDataPath}/netdata/config is set
+# ${jDataPath}/netdata/cache is set
+# ${jDataPath}/netdata/db is set
+# ${jDataPath}/netdata/smartd is set
+# ${scriptPth} is set and is r/w by `jailmedia`
+# netdata.crontab and netdata.logrotate are in ${scriptPth}/netdata
+# Add a tunable on the main system: type: rc.conf | Variable: `smartd_daemon_flags` | Value: `${smartd_daemon_flags} --attributelog=<jDataPath>/netdata/smartd/`
+
+
+# In this example we are setting NAT and the port forwards, setting the name of the bridge we are connecting to (or creating), and a fixed MAC address pair to go with it.
+_netdata=(
+allow_raw_sockets="1"
+nat="1"
+nat_forwards="tcp(19999:19999)"
+interfaces="vnet0:bridge0"
+vnet0_mac="02ff602be694 02ff602be695"
+)
+
+}
+
+# PVR
+{
+# Checklist before creating this jail:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `sonarr` is created on the main system with UID `351`
+# Ensure a user named `radarr` is created on the main system with UID `352`
+# Ensure a user named `jackett` is created on the main system with UID `354`
+# Ensure a user named `bazarr` is created on the main system with UID `357`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${scriptPth} is set and is r/w by `jailmedia`
+# ${torntPath} is set and is owned by `transmission` and is r/w by `jailmedia`
+# ${thingPath}/Torrents is set and is r/w by `jailmedia`
+# ${jDataPath}/sonarr is set and is owned by `sonarr`
+# ${jDataPath}/radarr is set and is owned by `radarr`
+# ${jDataPath}/jackett is set and is owned by `jackett`
+# ${jDataPath}/bazarr is set and is owned by `bazarr`
+### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
+# mono6.8-6.8.0.123.txz and ca-root-nss.crt are in ${scriptPth}/pvr
+
+
+# In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it, and that the plex and transmission jails should start first.
+_pvr=(
+vnet="1"
+allow_raw_sockets="1"
+ip6="disable"
+interfaces="vnet0:bridge60"
+vnet_default_interface="vlan60"
+resolver="${resolver60}"
+bpf="1"
+dhcp="1"
+vnet0_mac="02ff60df8049 02ff60df804a"
+depends="plex transmission"
+)
+
+}
+
+# ZNC
+{
+# Checklist before creating this jail:
+# Ensure a user named `znc` is created on the main system with UID `897`
+# ${jDataPath}/unifi is set and is owned by `znc`
+# ${scriptPth} is set and is r/w by `jailmedia`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP and a fixed MAC address pair to go with it.
+_znc=(
+vnet="1"
+allow_raw_sockets="1"
+interfaces="vnet0:bridge0"
+vnet_default_interface="vlan10"
+bpf="1"
+dhcp="1"
+vnet0_mac="02ff609935af 02ff609935b0"
+)
+
+}
+
+# Search
+{
+# Checklist before creating this jail:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `elasticsearch` is created on the main system with UID `965`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${scriptPth} is set and is r/w by `jailmedia`
+# ${thingPath} is set and is r/w by `jailmedia`
+# ${jDataPath}/fscrawler is set and is owned by `elasticsearch`
+# Download https://github.com/dadoonet/fscrawler/releases/tag/fscrawler-2.7 and unzip in ${jDataPath}/fscrawler
+# ${jDataPath}/elasticsearch is set and is owned by `elasticsearch`
+# ${jDataPath}/elasticsearch/etc is set
+# ${jDataPath}/elasticsearch/db is set
+# ${jDataPath}/kibana is set and is owned by `elasticsearch`
+# elasticsearch.crontab is in ${scriptPth}/search
+
+
+# In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, and a fixed MAC address pair to go with it.
+_search=(
+vnet="1"
+allow_raw_sockets="1"
+ip6="disable"
+interfaces="vnet0:bridge60"
+vnet_default_interface="vlan60"
+resolver="${resolver60}"
+bpf="1"
+dhcp="1"
+vnet0_mac="02ff60ae0444 02ff60ae0445"
+)
+
+}
+
+# Test
+{
+# Checklist before creating this jail:
+# ${scriptPth} is set and is r/w by `jailmedia`
+
+
+# In this example we are setting NAT, and setting the name of the bridge we are connecting to (or creating).
+_test=(
+vnet="1"
+nat="1"
+interfaces="vnet0:bridge0"
+)
+
+}
+
+# Port
+{
+# Checklist before creating this jail:
+# ${scriptPth} is set and is r/w by `jailmedia`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP.
+_port=(
+vnet="1"
+interfaces="vnet0:bridge0"
+vnet_default_interface="vlan10"
+bpf="1"
+dhcp="1"
+)
+
+}
+
+EOF
+}
+
+
+
+while getopts ":c:t:n:" OPTION; do
+	case "${OPTION}" in
+		c)
+			configFile="${OPTARG}"
+		;;
+		t)
+			jlType="${OPTARG}"
+		;;
+		n)
+			jlNType="${OPTARG}"
+		;;
+		?)
+			# If an unknown flag is used (or -?):
+			echo "${0} -c <configFile> -t <jailType> {-n <jailName>}" >&2
+			exit 1
+		;;
+	esac
+done
+
+if [ -z "${configFile}" ]; then
+	echo "Please specify a config file location; if none exist one will be created." >&2
+	exit 1
+elif [ ! -f "${configFile}" ]; then
+	jConfig
+	exit 0
+elif [ -z "${jlType}" ]; then
+	echo "Please specify a jail type." >&2
+	exit 1
+fi
+
+. "${configFile}"
+
+# Do not run if the config file has not been edited.
+if [ ! "${defaultFile}" = "0" ]; then
+	echo "Please edit the config file for your setup" >&2
+	exit 1
+elif [ ! "${configVers}" = "0" ]; then
+	mv "${configFile}" "${configFile}.bak"
+	jConfig
+	echo "The config has been changed please update it for your setup" >&2
+	exit 1
+fi
+
+
 
 function portS {
 	sudo iocage pkg "${jlName}" install -y svnup
@@ -33,9 +368,10 @@ function usrpths {
 
 function comn_mnt_pnts {
 	# Sets script and user mount points
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/dak180/"'
+	local userName="$(basename "${userPth}")"
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/${userName}/"'
 	sudo iocage fstab -a "${jlName}" "${scriptPth} /mnt/scripts/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "/mnt/jails/users/dak180 /mnt/users/dak180 nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${userPth} /mnt/users/${userName} nullfs rw 0 0"
 }
 
 function jl_init {
@@ -58,35 +394,13 @@ EOF'
 }
 
 
-
-# Common Package list
-tee "/tmp/pkg.json" << EOF
-{
-	"pkgs": [
-	"bash",
-	"bash-completion",
-	"tmux",
-	"wget",
-	"curl",
-	"nano",
-	"sudo",
-	"logrotate",
-	"fortune-mod-freebsd-classic",
-	"fortune-mod-bofh",
-	"pkg-provides"
-	]
-}
-
-EOF
-
-
 # Jail Creation
-if [ "${1}" = "plex" ]; then
+if [ "${jlType}" = "plex" ]; then
 	jlName="plex"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_mount="1" allow_mount_devfs="1" ip6="disable" allow_raw_sockets="1" allow_set_hostname="1" devfs_ruleset="109" enforce_statfs="1" interfaces="vnet0:bridge0" priority="1" vnet0_mac="B213DD984A80 B213DD984A7F" vnet_default_interface="vlan10"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" allow_mount_devfs="1" allow_set_hostname="1" enforce_statfs="1" "${_plex[@]}"; then
 		exit 1
 	fi
 
@@ -103,6 +417,9 @@ if [ "${1}" = "plex" ]; then
 	pkg_repo
 	usrpths
 	jl_init
+	if [ ! -f "${jDataPath}/plex/.bash_history" ]; then
+		sudo touch "${jDataPath}/plex/.bash_history"
+	fi
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
 
 	# Install packages
@@ -124,7 +441,9 @@ if [ "${1}" = "plex" ]; then
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
 	sudo iocage set boot="1" "${jlName}"
-	sudo iocage set devfs_ruleset="109" "${jlName}"
+	if [ ! -z "${_plex_devfs}" ]; then
+		sudo iocage set devfs_ruleset="109" "${jlName}"
+	fi
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
@@ -132,12 +451,13 @@ if [ "${1}" = "plex" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
+	}
+elif [ "${jlType}" = "trans" ] || [ "${jlType}" = "transmission" ]; then
 	jlName="transmission"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" ip6="disable" allow_tun="1" interfaces="vnet0:bridge60" priority="3" resolver="${resolver60}" vnet0_mac="4a3a78771683 4a3a78771682" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" priority="3" "${_transmission[@]}"; then
 		exit 1
 	fi
 
@@ -155,6 +475,9 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	pkg_repo
 	usrpths
 	jl_init
+	if [ ! -f "${jDataPath}/transmission/.bash_history" ]; then
+		sudo touch "${jDataPath}/transmission/.bash_history"
+	fi
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/var/db/transmission/.bash_history" "/root/.bash_history"'
 
 	# Install packages
@@ -175,14 +498,16 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 
 	## OpenVPN config
 	sudo iocage exec -f "${jlName}" -- 'sysrc openvpn_enable="YES"'
-	sudo iocage exec -f "${jlName}" -- 'sysrc openvpn_configfile="/usr/local/etc/openvpn/openvpn.conf"'
+	sudo iocage exec -f "${jlName}" -- "sysrc openvpn_configfile=\"/usr/local/etc/openvpn/${_transmission_openvpn_configfile}\""
 
 	## Network config
 	sudo iocage exec -f "${jlName}" -- 'sysrc firewall_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc firewall_script="/mnt/scripts/trans/ipfw.rules"'
 	## Static route for local inter-vlan connections
-	sudo iocage exec -f "${jlName}" -- 'sysrc static_routes="net1"'
-	sudo iocage exec -f "${jlName}" -- 'sysrc net1="-net 192.168.0.0/16 192.168.60.1"'
+	if [ ! -z "${_transmission_static}" ]; then
+		sudo iocage exec -f "${jlName}" -- 'sysrc static_routes="net1"'
+		sudo iocage exec -f "${jlName}" -- "sysrc net1=\"-net ${_transmission_static}\""
+	fi
 
 	# Start services
 	sudo iocage exec -f "${jlName}" -- "wget http://ipinfo.io/ip -qO -"
@@ -207,12 +532,13 @@ elif [ "${1}" = "trans" ] || [ "${1}" = "transmission" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "unifi" ]; then
+	}
+elif [ "${jlType}" = "unifi" ]; then
 	jlName="unifi"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" interfaces="igb0:bridge4" priority="1" resolver="${resolver04}" vnet0_mac="02ff608700b4 02ff608700b5" vnet_default_interface="igb0"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" priority="1" "${_unifi[@]}"; then
 		exit 1
 	fi
 
@@ -226,6 +552,9 @@ elif [ "${1}" = "unifi" ]; then
 	pkg_repo
 	usrpths
 	jl_init
+	if [ ! -f "${jDataPath}/unifi/.bash_history" ]; then
+		sudo touch "${jDataPath}/unifi/.bash_history"
+	fi
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
 
 	# Install packages
@@ -245,12 +574,13 @@ elif [ "${1}" = "unifi" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "netdata" ]; then
+	}
+elif [ "${jlType}" = "netdata" ]; then
 	jlName="netdata"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" nat="1" nat_forwards="tcp(19999:19999)" allow_raw_sockets="1" allow_set_hostname="1" mount_devfs="1" mount_fdescfs="1" mount_procfs="1" securelevel="-1" allow_sysvipc="1" sysvmsg="new" sysvsem="new" sysvshm="new" allow_mount_devfs="1" allow_mount_procfs="1" interfaces="vnet0:bridge0" priority="99" vnet0_mac="02ff602be694 02ff602be695"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" mount_devfs="1" mount_fdescfs="1" mount_procfs="1" securelevel="-1" allow_sysvipc="1" sysvmsg="inherit" sysvsem="inherit" sysvshm="inherit" allow_mount_devfs="1" allow_mount_procfs="1" priority="99" "${_netdata[@]}"; then
 		exit 1
 	fi
 
@@ -267,6 +597,9 @@ elif [ "${1}" = "netdata" ]; then
 	pkg_repo
 	usrpths
 	jl_init
+	if [ ! -f "${jDataPath}/netdata/config/.bash_history" ]; then
+		sudo touch "${jDataPath}/netdata/config/.bash_history"
+	fi
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/netdata/.bash_history" "/root/.bash_history"'
 	sudo iocage exec -f "${jlName}" -- "cp -sf /mnt/scripts/netdata/netdata.logrotate /usr/local/etc/logrotate.d/netdata"
 	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/netdata/netdata.crontab"
@@ -288,12 +621,13 @@ elif [ "${1}" = "netdata" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "pvr" ]; then
+	}
+elif [ "${jlType}" = "pvr" ]; then
 	jlName="pvr"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mlock="1" ip6="disable" allow_set_hostname="1" depends="plex transmission" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60df8049 02ff60df804a" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mlock="1" allow_set_hostname="1" "${_pvr[@]}"; then
 		exit 1
 	fi
 
@@ -313,6 +647,9 @@ elif [ "${1}" = "pvr" ]; then
 	pkg_repo
 	usrpths
 	jl_init
+	if [ ! -f "${jDataPath}/sonarr/.bash_history" ]; then
+		sudo touch "${jDataPath}/sonarr/.bash_history"
+	fi
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 
 	# Install packages
@@ -354,12 +691,13 @@ elif [ "${1}" = "pvr" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "znc" ]; then
+	}
+elif [ "${jlType}" = "znc" ]; then
 	jlName="znc"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_set_hostname="1" interfaces="vnet0:bridge0" priority="2" vnet0_mac="02ff609935af 02ff609935b0" vnet_default_interface="vlan10"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" priority="2" "${_znc[@]}"; then
 		exit 1
 	fi
 
@@ -373,6 +711,9 @@ elif [ "${1}" = "znc" ]; then
 	pkg_repo
 	usrpths
 	jl_init
+	if [ ! -f "${jDataPath}/znc/.bash_history" ]; then
+		sudo touch "${jDataPath}/znc/.bash_history"
+	fi
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/znc/.bash_history" "/root/.bash_history"'
 
 	# Install packagespy38-pip
@@ -393,12 +734,13 @@ elif [ "${1}" = "znc" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "search" ]; then
+	}
+elif [ "${jlType}" = "search" ]; then
 	jlName="search"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_raw_sockets="1" allow_mount="1" ip6="disable" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" interfaces="vnet0:bridge60" resolver="${resolver60}" vnet0_mac="02ff60ae0444 02ff60ae0445" vnet_default_interface="vlan60"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" "${_search[@]}"; then
 		exit 1
 	fi
 
@@ -418,6 +760,9 @@ elif [ "${1}" = "search" ]; then
 	pkg_repo
 	usrpths
 	jl_init
+	if [ ! -f "${jDataPath}/elasticsearch/etc/.bash_history" ]; then
+		sudo touch "${jDataPath}/elasticsearch/etc/.bash_history"
+	fi
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/elasticsearch/.bash_history" "/root/.bash_history"'
 
 	# Install packages
@@ -443,7 +788,7 @@ elif [ "${1}" = "search" ]; then
 	sudo iocage exec -f "${jlName}" -- "service kibana start"
 
 	# Final configuration
-	sudo iocage exec -f "${jlName}" -- "crontab -u elasticsearch /mnt/scripts/search/elasticsearch.crontab"
+	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/search/elasticsearch.crontab"
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
@@ -456,12 +801,13 @@ elif [ "${1}" = "search" ]; then
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
 	sudo iocage exec -f "${jlName}" -- "/mnt/scripts/search/search.cmd"
-elif [ "${1}" = "test" ]; then
+	}
+elif [ "${jlType}" = "test" ]; then
 	jlName="test"
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -T -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" nat="1" allow_set_hostname="1" interfaces="vnet0:bridge0"; then
+	if ! sudo iocage create -T -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" "${_test[@]}"; then
 		exit 1
 	fi
 
@@ -483,15 +829,17 @@ elif [ "${1}" = "test" ]; then
 	sudo iocage stop "${jlName}"
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
-elif [ "${1}" = "port" ]; then
-	jlName="${2}"
+	}
+elif [ "${jlType}" = "port" ]; then
+	jlName="${jlNType}"
 	if [ -z "${jlName}" ]; then
+		echo "Please specify a jail name." >&2
 		exit 1
 	fi
-
+	{
 
 	# Create jail
-	if ! sudo iocage create -T -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" vnet="1" bpf="1" dhcp="1" allow_set_hostname="1" interfaces="vnet0:bridge0" vnet_default_interface="vlan10"; then
+	if ! sudo iocage create -T -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" "${_port[@]}"; then
 		exit 1
 	fi
 
@@ -513,6 +861,7 @@ elif [ "${1}" = "port" ]; then
 	sudo iocage stop "${jlName}"
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
+	}
 fi
 
 

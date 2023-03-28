@@ -31,17 +31,17 @@ It is suggested that following invocation be used to run this script from a Post
 
 ## ipfw.rules ##
 
-A script to setup `ipfw` to force all non lan trafic from the `transmission` user through the first listed `tun` device.
+A script to setup `ipfw` to force all non lan trafic from the `transmission` user through the first listed `tun` device. For use with the `pia-port-forward.sh` script.
 
 ## jls.tool ##
 
-This a script to automate the creation of jails; modification would likely be required for your setup.
+This a script to automate the creation of jails; modification of the generated config file be required for your setup.
 
 ## pia-port-forward.sh ##
 
 This is a script to maintain a pia vpn connection with an open port for transmission.  It is intended to be run via cron at intervals of less than 15 mins from within the jail running transmission and openvpn.
 
-This script generally expects to be run form a jail created via `jls.tool transmission`.
+This script generally expects to be run form a jail created via `jls.tool -c jls.cfg -t transmission`.
 
 The `vpnDir` will need to be set to the location of the openvpn config directory.
 
@@ -49,7 +49,7 @@ The `firewallScript` needs to be set to the location of the `ipfw.rules` file.
 
 ## search.cmd ##
 
-A command to initiate crawls from within the **search** jail as setup by `jls.tool search`.
+A command to initiate crawls from within the **search** jail as setup by `jls.tool -c jls.cfg -t search`.
 
 ## suite-definition.xml ##
 
