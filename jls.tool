@@ -369,7 +369,7 @@ function usrpths {
 function comn_mnt_pnts {
 	# Sets script and user mount points
 	local userName="$(basename "${userPth}")"
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/scripts/" "/mnt/users/${userName}/"'
+	sudo iocage exec -f "${jlName}" -- "mkdir -pv '/mnt/scripts/' \"/mnt/users/${userName}/\""
 	sudo iocage fstab -a "${jlName}" "${scriptPth} /mnt/scripts/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${userPth} /mnt/users/${userName} nullfs rw 0 0"
 }
@@ -580,7 +580,7 @@ elif [ "${jlType}" = "netdata" ]; then
 	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" mount_devfs="1" mount_fdescfs="1" mount_procfs="1" securelevel="-1" allow_sysvipc="1" sysvmsg="inherit" sysvsem="inherit" sysvshm="inherit" allow_mount_devfs="1" allow_mount_procfs="1" priority="99" "${_netdata[@]}"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" mount_devfs="1" mount_fdescfs="1" mount_procfs="1" securelevel="-1" allow_sysvipc="1" sysvmsg="inherit" sysvsem="inherit" sysvshm="inherit" allow_mount_devfs="1" allow_mount_procfs="1" priority="1" "${_netdata[@]}"; then
 		exit 1
 	fi
 
