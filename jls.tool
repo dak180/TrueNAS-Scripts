@@ -234,6 +234,33 @@ vnet0_mac="02ff609935af 02ff609935b0"
 
 }
 
+# Gitea
+{
+# Checklist before creating this jail:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `git` is created on the main system with UID `211` and home directory set to `${userPth}/../git
+# Ensure a user named `git_daemon` is created on the main system with UID `964`
+# ${scriptPth} is set and is r/w by `jailmedia`
+# ${gitPath} is set and is owned by `git` and is r/w by `jailmedia`
+# ${jDataPath}/gitea is set and is owned by `git`
+# ${jDataPath}/gitea/etc is set
+# ${jDataPath}/gitea/share is set
+
+
+# In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP, and a fixed MAC address pair to go with it.
+_gitea=(
+vnet="1"
+allow_raw_sockets="1"
+ip6="disable"
+interfaces="vnet0:bridge0"
+vnet_default_interface="vlan10"
+bpf="1"
+dhcp="1"
+vnet0_mac="02ff60757089 02ff6075708a"
+)
+
+}
+
 # Search
 {
 # Checklist before creating this jail:
@@ -723,6 +750,59 @@ elif [ "${jlType}" = "znc" ]; then
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc znc_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- "service znc start"
+
+	# Set jail to start at boot.
+	sudo iocage stop "${jlName}"
+	sudo iocage set boot="1" "${jlName}"
+
+	# Check MAC Address
+	sudo iocage get vnet0_mac "${jlName}"
+
+	# Create initial snapshot
+	sudo iocage snapshot "${jlName}" -n InitialConfiguration
+	sudo iocage start "${jlName}"
+	}
+elif [ "${jlType}" = "gitea" ]; then
+	jlName="gitea"
+	{
+
+	# Create jail
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" priority="99" "${_gitea[@]}"; then
+		exit 1
+	fi
+
+	# Set Mounts
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/gitea" "/usr/local/share/gitea" "/mnt/repositories" "/usr/local/git"'
+
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/gitea/etc/ /usr/local/etc/gitea/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/gitea/share/ /usr/local/share/gitea/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${gitPath}/ /mnt/repositories/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "$(dirname "${userPth}")/git/ /usr/local/git/ nullfs rw 0 0"
+
+	# Generic Configuration
+	pkg_repo
+	usrpths
+	jl_init
+	if [ ! -f "${jDataPath}/gitea/etc/.bash_history" ]; then
+		sudo touch "${jDataPath}/gitea/etc/.bash_history"
+	fi
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/gitea/.bash_history" "/root/.bash_history"'
+
+	# Install packages
+	sudo iocage pkg "${jlName}" install -y gitea git ca_root_nss openssl gnupg
+
+### Setup gitea
+	sudo iocage exec -f "${jlName}" -- "openssl rand -base64 64 | tee '/usr/local/etc/gitea/INTERNAL_TOKEN'"
+	sudo iocage exec -f "${jlName}" -- "openssl rand -base64 32 | tee '/usr/local/etc/gitea/JWT_SECRET'"
+###
+
+	# Set permissions
+	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m git"
+
+	# Enable Services
+	sudo iocage exec -f "${jlName}" -- 'sysrc gitea_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- "service gitea start"
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
