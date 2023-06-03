@@ -12,8 +12,8 @@ defaultFile="1"
 # Jail creation config file
 configVers="0" # Do not edit this.
 
-# Resolver lines for different vlans for jails to connect to (vnets must already be defined in the network -> interface section of the gui). Necessary only if the vlan is different than the one used for the web interface.
-# If you do not have vlan this can be ignored.
+# Resolver lines for different vlans for jails to connect to (vlans must already be defined in the network -> interface section of the gui). Necessary only if the vlan is different than the one used for the web interface.
+# If you do not have vlans this can be ignored.
 resolver60="search local.dak180.com local;nameserver 192.168.60.1"
 resolver04="search local.dak180.com local;nameserver 192.168.4.1"
 
@@ -22,12 +22,11 @@ ioRelease="13.1-RELEASE" # LATEST
 
 # Common paths to be mounted into jails (relative to the host).
 mediaPth="/mnt/data/Media" # path to media; will be mounted to `/media` in jails
-jDataPath="/mnt/jails/Data" # prefix path to where persistan jail application data will be ie: `/mnt/jails/Data/znc` these datasets will need to be created prior to making the jail
-torntPath="/mnt/data/torrents" # a temp location for torrents to land so a different Record Size can be set
+jDataPath="/mnt/jails/Data" # prefix path to where persistant jail application data will be ie: `/mnt/jails/Data/znc` these datasets will need to be created prior to making the jail
 backupPth="/mnt/data/Backups" # prefix path to backup locations ie: `/mnt/data/Backups/plex`
 scriptPth="/mnt/jails/scripts" # path to a common set of scripts
 thingPath="/mnt/data/Things" # path to a general SMB share
-userPth="/mnt/jails/users/dak180" # path to a full user directory
+userPth="/mnt/jails/users/dak180" # path to a full user directory on the base system
 
 # Common paths in jails (relative to the jail).
 usrpth="/mnt/scripts/user" # where user files are loaded into jails ie: .bashrc .profile .nanorc .config/*
@@ -53,8 +52,6 @@ tee "/tmp/pkg.json" << EOL
 EOL
 
 ##### Jail specific settings
-# In the form: declare -A _<jail>
-# And then for each setting: _<jail>[<setting>]="<value>"
 # See https://www.freebsd.org/cgi/man.cgi?iocage#PROPERTIES for some more details on what can be set in <ipset>.
 
 # Plex
@@ -96,6 +93,7 @@ fi
 
 # Transmission
 {
+torntPath="/mnt/data/torrents" # a temp location for torrents to land so a different Record Size can be set
 # Checklist before creating this jail:
 # Ensure a group named `jailmedia` is created on the main system with GID `1001`
 # Ensure a user named `transmission` is created on the main system with UID `921`
@@ -847,7 +845,7 @@ elif [ "${jlType}" = "search" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y elasticsearch7 kibana7 tesseract-data tesseract
-	sudo iocage pkg "${jlName}" install -y openjdk15
+	sudo iocage pkg "${jlName}" install -y openjdk17
 
 ### Setup fscrawler
 
