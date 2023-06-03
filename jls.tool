@@ -374,9 +374,9 @@ fi
 
 
 function portS {
-	sudo iocage pkg "${jlName}" install -y svnup
+	sudo iocage pkg "${jlName}" install -y svnup || echo "Failed to install packages." >&2; exit 1
 	sudo iocage exec -f "${jlName}" -- 'cat /usr/local/etc/svnup.conf.sample | sed -e "s:#host=svn\.:host=svn\.:" > /usr/local/etc/svnup.conf'
-	sudo iocage exec -f "${jlName}" -- "svnup ports -v 0"
+	sudo iocage exec -f "${jlName}" -- "svnup ports -v 0" || echo "Failed to install packages." >&2; exit 1
 	sudo iocage exec -f "${jlName}" -- "cd /usr/ports/ports-mgmt/portmaster && make install clean"
 }
 
@@ -448,7 +448,7 @@ if [ "${jlType}" = "plex" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg yt-dlp py39-pycryptodomex AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver
+	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg yt-dlp py39-pycryptodomex AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver || echo "Failed to install packages." >&2; exit 1
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m plex"
@@ -506,7 +506,7 @@ elif [ "${jlType}" = "trans" ] || [ "${jlType}" = "transmission" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/var/db/transmission/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq
+	sudo iocage pkg "${jlName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq || echo "Failed to install packages." >&2; exit 1
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m transmission"
@@ -583,7 +583,7 @@ elif [ "${jlType}" = "unifi" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y unifi7
+	sudo iocage pkg "${jlName}" install -y unifi7 || echo "Failed to install packages." >&2; exit 1
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
@@ -630,7 +630,7 @@ elif [ "${jlType}" = "netdata" ]; then
 	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/netdata/netdata.crontab"
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y netdata netdata-go smartmontools
+	sudo iocage pkg "${jlName}" install -y netdata netdata-go smartmontools || echo "Failed to install packages." >&2; exit 1
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc netdata_enable="YES"'
@@ -678,11 +678,11 @@ elif [ "${jlType}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mediainfo ca_root_nss
+	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mediainfo ca_root_nss || echo "Failed to install packages." >&2; exit 1
 	sudo iocage pkg "${jlName}" lock -y jackett
 
 ### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
-	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz /mnt/scripts/pvr/py37-pillow-7.0.0.txz /mnt/scripts/pvr/py37-olefile-0.46.txz || echo "Failed to install packages."; exit 1
+	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz /mnt/scripts/pvr/py37-pillow-7.0.0.txz /mnt/scripts/pvr/py37-olefile-0.46.txz || echo "Failed to install packages." >&2; exit 1
 	sudo iocage pkg "${jlName}" lock -y mono6.8
 	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
 ###
@@ -788,7 +788,7 @@ elif [ "${jlType}" = "gitea" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/gitea/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y gitea git ca_root_nss openssl gnupg
+	sudo iocage pkg "${jlName}" install -y gitea git ca_root_nss openssl gnupg || echo "Failed to install packages." >&2; exit 1
 
 ### Setup gitea
 	sudo iocage exec -f "${jlName}" -- "openssl rand -base64 64 | tee '/usr/local/etc/gitea/INTERNAL_TOKEN'"
@@ -844,8 +844,8 @@ elif [ "${jlType}" = "search" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/elasticsearch/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y elasticsearch7 kibana7 tesseract-data tesseract
-	sudo iocage pkg "${jlName}" install -y openjdk17
+	sudo iocage pkg "${jlName}" install -y elasticsearch7 kibana7 tesseract-data tesseract || echo "Failed to install packages." >&2; exit 1
+	sudo iocage pkg "${jlName}" install -y openjdk17 || echo "Failed to install packages." >&2; exit 1
 
 ### Setup fscrawler
 
@@ -898,7 +898,7 @@ elif [ "${jlType}" = "test" ]; then
 	jl_init
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y phoronix-test-suite-php74 autoconf automake cmake gmake openjdk8 perl5 pkgconf python python3
+	sudo iocage pkg "${jlName}" install -y phoronix-test-suite-php74 autoconf automake cmake gmake openjdk8 perl5 pkgconf python python3 || echo "Failed to install packages." >&2; exit 1
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
