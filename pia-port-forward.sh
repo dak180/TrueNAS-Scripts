@@ -120,11 +120,11 @@ function write_gateway_script() {
 EOL
 	chmod +x "${varFile}"
 
-	if cat "${confFile}" | grep -q "script-security 1"; then
+	if grep -q "^script-security 1" < "${confFile}"; then
 		sed -i '' -e 's:script-security 1:script-security 2:' "${confFile}"
-	elif cat "${confFile}" | grep -q "script-security 0"; then
+	elif grep -q "^script-security 0" < "${confFile}"; then
 		sed -i '' -e 's:script-security 0:script-security 2:' "${confFile}"
-	elif ! cat "${confFile}" | grep -q "script-security"; then
+	elif ! grep -q "^script-security" < "${confFile}"; then
 		tee -a "${confFile}" <<< "script-security 2"
 	fi
 	tee -a "${confFile}" <<< "up \'${varFile}\'"
