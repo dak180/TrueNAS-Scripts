@@ -789,6 +789,7 @@ elif [ "${jlType}" = "gitea" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y gitea git ca_root_nss openssl gnupg || echo "Failed to install packages." >&2; exit 1
+	sudo iocage pkg "${jlName}" lock -y gitea
 
 ### Setup gitea
 	sudo iocage exec -f "${jlName}" -- "openssl rand -base64 64 | tee '/usr/local/etc/gitea/INTERNAL_TOKEN'"
