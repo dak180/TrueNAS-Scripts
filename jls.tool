@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2236,SC2086,SC2068
+# shellcheck disable=SC2236,SC2086,SC2068,SC2317,SC2155
 
 # Config
 
@@ -23,6 +23,7 @@ ioRelease="13.1-RELEASE" # LATEST
 # Common paths to be mounted into jails (relative to the host).
 mediaPth="/mnt/data/Media" # path to media; will be mounted to `/media` in jails
 jDataPath="/mnt/jails/Data" # prefix path to where persistant jail application data will be ie: `/mnt/jails/Data/znc` these datasets will need to be created prior to making the jail
+gitPath="/mnt/data/git" # a location for git repos so a different Record Size can be set
 backupPth="/mnt/data/Backups" # prefix path to backup locations ie: `/mnt/data/Backups/plex`
 scriptPth="/mnt/jails/scripts" # path to a common set of scripts
 thingPath="/mnt/data/Things" # path to a general SMB share
@@ -358,6 +359,7 @@ elif [ -z "${jlType}" ]; then
 	exit 1
 fi
 
+# shellcheck source=./jls.cnfg
 . "${configFile}"
 
 # Do not run if the config file has not been edited.

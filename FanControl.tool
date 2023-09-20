@@ -653,7 +653,7 @@ elif [ ! -f "${configFile}" ]; then
 fi
 
 # Source external config file
-# shellcheck source=/dev/null
+# shellcheck source=./FanConfig
 . "${configFile}"
 
 # Check if needed software is installed.
