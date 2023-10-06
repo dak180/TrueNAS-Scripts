@@ -508,7 +508,14 @@ elif [ "${jlType}" = "trans" ] || [ "${jlType}" = "transmission" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/var/db/transmission/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y openvpn transmission-daemon transmission-web transmission-cli transmission-utils base64 jq || echo "Failed to install packages." >&2; exit 1
+	if ! sudo iocage pkg "${jlName}" install -y openvpn base64 jq; then
+		echo "Failed to install packages." >&2
+		exit 1
+	fi
+	if ! sudo iocage pkg "${jlName}" install -y transmission-cli transmission-daemon transmission-utils; then
+		echo "Failed to install packages." >&2
+		exit 1
+	fi
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m transmission"
