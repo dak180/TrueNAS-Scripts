@@ -828,7 +828,7 @@ elif [ "${jlType}" = "search" ]; then
 	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" "${_search[@]}"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" mount_procfs="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" "${_search[@]}"; then
 		exit 1
 	fi
 
@@ -836,7 +836,6 @@ elif [ "${jlType}" = "search" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/fscrawler/" "/usr/local/etc/elasticsearch/" "/var/db/elasticsearch" "/usr/local/etc/kibana" "/mnt/Media/" "/mnt/Things/"'
 
-	sudo iocage fstab -a "${jlName}" "proc   /proc    procfs   rw  0  0"
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/fscrawler /mnt/fscrawler/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/elasticsearch/etc /usr/local/etc/elasticsearch/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/elasticsearch/db /var/db/elasticsearch/ nullfs rw 0 0"
