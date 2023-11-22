@@ -572,7 +572,7 @@ elif [ "${jlType}" = "unifi" ]; then
 	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" priority="1" "${_unifi[@]}"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" mount_fdescfs="1" mount_procfs="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" priority="1" "${_unifi[@]}"; then
 		exit 1
 	fi
 
@@ -592,11 +592,13 @@ elif [ "${jlType}" = "unifi" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
 
 	# Install packages
+	sudo iocage pkg "${jlName}" install -y openjdk17 mongodb44 || echo "Failed to install packages." >&2; exit 1
 	sudo iocage pkg "${jlName}" install -y unifi7 || echo "Failed to install packages." >&2; exit 1
+
+	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb44 unifi7
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
-	sudo iocage exec -f "${jlName}" -- "service unifi start"
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
