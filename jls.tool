@@ -593,9 +593,9 @@ elif [ "${jlType}" = "unifi" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y openjdk17 mongodb44 || echo "Failed to install packages." >&2; exit 1
-	sudo iocage pkg "${jlName}" install -y unifi7 || echo "Failed to install packages." >&2; exit 1
+	sudo iocage pkg "${jlName}" install -y unifi8 || echo "Failed to install packages." >&2; exit 1
 
-	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb44 unifi7
+	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb44 unifi8
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
