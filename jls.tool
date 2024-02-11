@@ -610,6 +610,7 @@ elif [ "${jlType}" = "unifi" ]; then
 	# Create initial snapshot
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
+	echo "unifi8 takes about 90 secs to intially boot."
 	}
 elif [ "${jlType}" = "netdata" ]; then
 	jlName="netdata"
