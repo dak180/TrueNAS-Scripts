@@ -28,6 +28,7 @@ backupPth="/mnt/data/Backups" # prefix path to backup locations ie: `/mnt/data/B
 scriptPth="/mnt/jails/scripts" # path to a common set of scripts
 thingPath="/mnt/data/Things" # path to a general SMB share
 userPth="/mnt/jails/users/dak180" # path to a full user directory on the base system
+proxPth="/mnt/data/pkg-cache" # path to a dataset to cache pkg downloads
 
 # Common paths in jails (relative to the jail).
 usrpth="/mnt/scripts/user" # where user files are loaded into jails ie: .bashrc .profile .nanorc .config/*
@@ -396,8 +397,9 @@ function usrpths {
 function comn_mnt_pnts {
 	# Sets script and user mount points
 	local userName="$(basename "${userPth}")"
-	sudo iocage exec -f "${jlName}" -- "mkdir -pv '/mnt/scripts/' \"/mnt/users/${userName}/\""
+	sudo iocage exec -f "${jlName}" -- "mkdir -pv '/mnt/scripts/' '/mnt/pkg-cache' '/mnt/users/${userName}/'"
 	sudo iocage fstab -a "${jlName}" "${scriptPth} /mnt/scripts/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${proxPth} /mnt/pkg-cache/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${userPth} /mnt/users/${userName} nullfs rw 0 0"
 }
 
@@ -418,6 +420,8 @@ FreeBSD: {
 }
 
 EOF'
+
+	sudo iocage exec -f "${jlName}" -- 'echo "PKG_CACHEDIR: /mnt/pkg-cache" >> "/usr/local/etc/pkg.conf"'
 }
 
 
