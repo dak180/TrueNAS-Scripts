@@ -213,6 +213,30 @@ depends="plex transmission"
 
 }
 
+# FlareSolverr
+{
+# Checklist before creating this jail:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a group named `flaresolverr` is created on the main system with GID `2000`
+# Ensure a user named `flaresolverr` is created on the main system with UID `2000`
+# ${jDataPath}/flaresolverr is set and is owned by `flaresolverr`
+
+
+# In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it.
+_flaresolverr=(
+vnet="1"
+allow_raw_sockets="1"
+ip6="disable"
+interfaces="vnet0:bridge60"
+vnet_default_interface="vlan60"
+resolver="${resolver60}"
+bpf="1"
+dhcp="1"
+vnet0_mac="02ff60717d7b 02ff60717d7c"
+)
+
+}
+
 # ZNC
 {
 # Checklist before creating this jail:
@@ -733,6 +757,94 @@ elif [ "${jlType}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- "service sonarr start"
 	sudo iocage exec -f "${jlName}" -- "service radarr start"
 	sudo iocage exec -f "${jlName}" -- "service bazarr start"
+
+	# Set jail to start at boot.
+	sudo iocage stop "${jlName}"
+	sudo iocage set boot="1" "${jlName}"
+
+	# Check MAC Address
+	sudo iocage get vnet0_mac "${jlName}"
+
+	# Create initial snapshot
+	sudo iocage snapshot "${jlName}" -n InitialConfiguration
+	sudo iocage start "${jlName}"
+	}
+elif [ "${jlType}" = "flaresolverr" ]; then
+	jlName="flaresolverr"
+	{
+
+	# Create jail
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mlock="1" allow_set_hostname="1" "${_flaresolverr[@]}"; then
+		exit 1
+	fi
+
+	# Set Mounts
+	sudo mkdir -pv "${jDataPath}/flaresolverr/home" "${jDataPath}/flaresolverr/app" "${jDataPath}/flaresolverr/undetected_chromedriver" "${jDataPath}/flaresolverr/root/undetected_chromedriver" "${jDataPath}/flaresolverr/share" "${jDataPath}/flaresolverr/git"
+	sudo chown -R flaresolverr:flaresolverr "${jDataPath}/flaresolverr"
+
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/home/flaresolverr" "/app" "/.undetected_chromedriver" "/root/.undetected_chromedriver" "/usr/local/share/flaresolverr" "/mnt/git"'
+
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/flaresolverr/home /home/flaresolverr/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/flaresolverr/app /app/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/flaresolverr/undetected_chromedriver /.undetected_chromedriver/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/flaresolverr/root/undetected_chromedriver /root/.undetected_chromedriver/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/flaresolverr/share /usr/local/share/flaresolverr/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/flaresolverr/git /mnt/git/ nullfs rw 0 0"
+
+	# Generic Configuration
+	pkg_repo
+	usrpths
+	jl_init
+	if [ ! -f "${jDataPath}/flaresolverr/home/.bash_history" ]; then
+		sudo touch "${jDataPath}/flaresolverr/home/.bash_history"
+	fi
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/home/flaresolverr/.bash_history" "/root/.bash_history"'
+
+	# Install packages
+	sudo iocage pkg "${jlName}" install -y chromium || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y python39 || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y xorg-vfbserver || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y py39-pip py39-virtualenv git || { echo "Failed to install packages." >&2; exit 1;}
+
+	flaresolverr_version="v3.3.16"
+	if [ ! -d "${jDataPath}/flaresolverr/git/flaresolverr/.git" ]; then
+		sudo rm -fr "${jDataPath}/flaresolverr/git/flaresolverr"
+	fi
+	sudo iocage exec -f "${jlName}" -- "git clone 'https://github.com/FlareSolverr/FlareSolverr.git' '/mnt/git/flaresolverr'" || { echo "Failed to install packages." >&2; exit 1;}
+
+	if [ ! -f "${jDataPath}/flaresolverr/share/.git" ]; then
+		sudo iocage exec -f "${jlName}" -- "cd '/mnt/git/flaresolverr' && git worktree add '/usr/local/share/flaresolverr' '${flaresolverr_version}'"
+	else
+		sudo iocage exec -f "${jlName}" -- "cd '/mnt/git/flaresolverr' && git worktree repair '/usr/local/share/flaresolverr'" || { echo "Failed to install packages." >&2; exit 1;}
+		sudo iocage exec -f "${jlName}" -- "cd '/usr/local/share/flaresolverr' && git checkout '${flaresolverr_version}'" || { echo "Failed to install packages." >&2; exit 1;}
+	fi
+
+	# Move things into place
+	sudo iocage exec -f "${jlName}" -- "cp -a /usr/local/bin/chromedriver /app/chromedriver"
+	sudo iocage exec -f "${jlName}" -- "cp -a /usr/local/bin/chromedriver /app/chromedriver.exe"
+
+	# Set permissions
+	sudo iocage exec -f "${jlName}" -- "pw groupadd -n flaresolverr -g 2000"
+	sudo iocage exec -f "${jlName}" -- "pw useradd -n flaresolverr -g flaresolverr -s '/usr/sbin/nologin' -u 2000 -d '/home/flaresolverr/'"
+
+	sudo iocage exec -f "${jlName}" -- "chown -R flaresolverr:flaresolverr /usr/local/share/flaresolverr/ /home/flaresolverr /app /.undetected_chromedriver root/.undetected_chromedriver"
+
+	sudo iocage exec -f "${jlName}" -- "chmod -R 770 /usr/local/share/flaresolverr"
+	sudo iocage exec -f "${jlName}" -- "chmod -R 777 /home/flaresolverr /app"
+	sudo iocage exec -f "${jlName}" -- "chmod -R 775 /.undetected_chromedriver root/.undetected_chromedriver"
+
+	### virtualenv
+	sudo iocage exec -f "${jlName}" -- "/mnt/scripts/flaresolverr/build.tool" || { echo "Failed to install packages." >&2; exit 1;}
+	###
+
+	# Enable Services
+	sudo iocage exec -f "${jlName}" -- 'cp -a "/mnt/scripts/flaresolverr/flaresolverr" "/usr/local/etc/rc.d/flaresolverr"'
+
+	sudo iocage exec -f "${jlName}" -- 'sysrc flaresolverr_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc flaresolverr_daemon_user="root"'
+
+	sudo iocage exec -f "${jlName}" -- "service flaresolverr start"
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
