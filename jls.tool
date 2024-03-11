@@ -18,7 +18,7 @@ resolver60="search local.dak180.com local;nameserver 192.168.60.1"
 resolver04="search local.dak180.com local;nameserver 192.168.4.1"
 
 # The release to base jails on.
-ioRelease="13.1-RELEASE" # LATEST
+ioRelease="13.2-RELEASE" # LATEST
 
 # Common paths to be mounted into jails (relative to the host).
 mediaPth="/mnt/data/Media" # path to media; will be mounted to `/media` in jails
@@ -138,16 +138,17 @@ _transmission_static="192.168.0.0/16 192.168.60.1"
 # ${scriptPth} is set and is r/w by `jailmedia`
 
 
-# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP and a fixed MAC address pair to go with it.
+# In this example we are setting the name of the bridges we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP and a fixed MAC address pair to go with it.
 _unifi=(
 vnet="1"
 allow_raw_sockets="1"
-interfaces="igb0:bridge4"
-vnet_default_interface="igb0"
+interfaces="vnet0:bridge0,vnet1:bridge4"
+vnet_default_interface="none"
 resolver="${resolver04}"
 bpf="1"
 dhcp="1"
 vnet0_mac="02ff608700b4 02ff608700b5"
+vnet1_mac="02ff60680091 02ff60680092"
 )
 
 }
@@ -208,7 +209,7 @@ resolver="${resolver60}"
 bpf="1"
 dhcp="1"
 vnet0_mac="02ff60df8049 02ff60df804a"
-depends="plex transmission"
+depends="plex transmission flaresolverr"
 )
 
 }
