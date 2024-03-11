@@ -425,6 +425,18 @@ EOF'
 }
 
 
+# Prevent sudo timeout
+sudo -v # ask for sudo password up-front
+while true; do
+  # Update user's timestamp without running a command
+  sudo -nv; sleep "60"
+  # Exit when the parent process is not running any more. In fact this loop
+  # would be killed anyway after being an orphan(when the parent process
+  # exits). But this ensures that and probably exits sooner.
+  kill -0 $$ 2>/dev/null || exit
+done &
+
+
 # Jail Creation
 if [ "${jlType}" = "plex" ]; then
 	jlName="plex"
