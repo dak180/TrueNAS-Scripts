@@ -633,10 +633,10 @@ elif [ "${jlType}" = "unifi" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y openjdk17 mongodb44 || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -Ay openjdk17 mongodb50 || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -y unifi8 || { echo "Failed to install packages." >&2; exit 1;}
 
-	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb44 unifi8
+	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb50 unifi8
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
@@ -804,8 +804,8 @@ elif [ "${jlType}" = "flaresolverr" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y chromium || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" install -y python39 || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -y xorg-vfbserver || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -Ay python39 || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -y py39-pip py39-virtualenv git || { echo "Failed to install packages." >&2; exit 1;}
 
 	flaresolverr_version="v3.3.16"
