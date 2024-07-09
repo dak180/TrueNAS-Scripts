@@ -491,7 +491,8 @@ if [ "${jlType}" = "plex" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg yt-dlp py39-pycryptodomex AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -Ay py39-pycryptodomex || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg yt-dlp AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver || { echo "Failed to install packages." >&2; exit 1;}
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m plex"
@@ -804,8 +805,8 @@ elif [ "${jlType}" = "flaresolverr" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y chromium || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" install -y xorg-vfbserver || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -Ay python39 || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -Ay xorg-vfbserver || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -y py39-pip py39-virtualenv git || { echo "Failed to install packages." >&2; exit 1;}
 
 	flaresolverr_version="v3.3.16"
