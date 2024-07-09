@@ -848,6 +848,9 @@ elif [ "${jlType}" = "flaresolverr" ]; then
 
 	sudo iocage exec -f "${jlName}" -- "service flaresolverr start"
 
+	# Final configuration
+	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/flaresolverr/flaresolverr.crontab"
+
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
 	sudo iocage set boot="1" "${jlName}"
