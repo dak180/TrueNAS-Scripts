@@ -18,7 +18,7 @@ resolver60="search local.dak180.com local;nameserver 192.168.60.1"
 resolver04="search local.dak180.com local;nameserver 192.168.4.1"
 
 # The release to base jails on.
-ioRelease="13.2-RELEASE" # LATEST
+ioRelease="13.3-RELEASE" # LATEST
 
 # Common paths to be mounted into jails (relative to the host).
 mediaPth="/mnt/data/Media" # path to media; will be mounted to `/media` in jails
@@ -501,6 +501,8 @@ if [ "${jlType}" = "plex" ]; then
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc plexmediaserver_plexpass_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc plexmediaserver_plexpass_support_path="/usr/local/plexdata"'
+
+	sudo iocage exec -f "${jlName}" -- 'sysrc clear_tmp_enable="YES"'
 
 	sudo iocage exec -f "${jlName}" -- 'sysrc tautulli_enable="YES"'
 
@@ -1012,6 +1014,7 @@ elif [ "${jlType}" = "search" ]; then
 
 	# Final configuration
 	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/search/elasticsearch.crontab"
+	sudo iocage exec -f "${jlName}" -- 'sysrc clear_tmp_enable="YES"'
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
