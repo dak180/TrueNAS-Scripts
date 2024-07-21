@@ -807,22 +807,21 @@ elif [ "${jlType}" = "flaresolverr" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -y chromium || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" install -Ay python39 || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -Ay python311 || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -Ay xorg-vfbserver || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" install -y py39-pip py39-virtualenv git || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y py311-pip py311-virtualenv git || { echo "Failed to install packages." >&2; exit 1;}
 
-	flaresolverr_version="v3.3.16"
-	if [ ! -d "${jDataPath}/flaresolverr/git/flaresolverr/.git" ]; then
+	flaresolverr_version="v3.3.21"
+	if [ -d "${jDataPath}/flaresolverr/git/flaresolverr/.git" ]; then
 		sudo rm -fr "${jDataPath}/flaresolverr/git/flaresolverr"
 	fi
 	sudo iocage exec -f "${jlName}" -- "git clone 'https://github.com/FlareSolverr/FlareSolverr.git' '/mnt/git/flaresolverr'" || { echo "Failed to install packages." >&2; exit 1;}
 
-	if [ ! -f "${jDataPath}/flaresolverr/share/.git" ]; then
-		sudo iocage exec -f "${jlName}" -- "cd '/mnt/git/flaresolverr' && git worktree add '/usr/local/share/flaresolverr' '${flaresolverr_version}'"
-	else
-		sudo iocage exec -f "${jlName}" -- "cd '/mnt/git/flaresolverr' && git worktree repair '/usr/local/share/flaresolverr'" || { echo "Failed to install packages." >&2; exit 1;}
-		sudo iocage exec -f "${jlName}" -- "cd '/usr/local/share/flaresolverr' && git checkout '${flaresolverr_version}'" || { echo "Failed to install packages." >&2; exit 1;}
+	if [ -f "${jDataPath}/flaresolverr/share/.git" ]; then
+		sudo iocage exec -f "${jlName}" -- 'rm -fr "/usr/local/share/flaresolverr/"*' || { echo "Failed to install packages." >&2; exit 1;}
+		sudo iocage exec -f "${jlName}" -- 'rm -fr "/usr/local/share/flaresolverr/."*' || { echo "Failed to install packages." >&2; exit 1;}
 	fi
+	sudo iocage exec -f "${jlName}" -- "cd '/mnt/git/flaresolverr' && git worktree add '/usr/local/share/flaresolverr' '${flaresolverr_version}'"
 
 	# Move things into place
 	sudo iocage exec -f "${jlName}" -- "cp -a /usr/local/bin/chromedriver /app/chromedriver"
