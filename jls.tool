@@ -991,7 +991,7 @@ elif [ "${jlType}" = "search" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/etc/elasticsearch/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y elasticsearch7 kibana7 tesseract-data tesseract || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y elasticsearch7 kibana8 tesseract-data tesseract || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -y openjdk17 || { echo "Failed to install packages." >&2; exit 1;}
 
 ### Setup fscrawler
