@@ -491,7 +491,7 @@ if [ "${jlType}" = "plex" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/plexdata/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -Ay py39-pycryptodomex || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -Ay py311-pycryptodomex || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg yt-dlp AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver || { echo "Failed to install packages." >&2; exit 1;}
 
 	# Set permissions
