@@ -195,7 +195,7 @@ vnet0_mac="02ff602be694 02ff602be695"
 # ${jDataPath}/jackett is set and is owned by `jackett`
 # ${jDataPath}/bazarr is set and is owned by `bazarr`
 ### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
-# mono6.8-6.8.0.123.txz, py37-pillow-7.0.0.txz, py37-olefile-0.46.txz and ca-root-nss.crt are in ${scriptPth}/pvr
+# mono6.8-6.8.0.123.txz, py37-pillow-7.0.0.txz, py37-olefile-0.46.txz, py37-tkinter-3.7.17_6.pkg, py37-setuptools-63.1.0_1.pkg, python37-3.7.17.pkg, and ca-root-nss.crt are in ${scriptPth}/pvr
 
 
 # In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it, and that the plex and transmission jails should start first.
@@ -738,7 +738,7 @@ elif [ "${jlType}" = "pvr" ]; then
 	sudo iocage pkg "${jlName}" lock -y jackett
 
 ### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
-	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz /mnt/scripts/pvr/py37-pillow-7.0.0.txz /mnt/scripts/pvr/py37-olefile-0.46.txz || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz /mnt/scripts/pvr/py37-pillow-7.0.0.txz /mnt/scripts/pvr/py37-olefile-0.46.txz /mnt/scripts/pvr/py37-tkinter-3.7.17_6.pkg /mnt/scripts/pvr/py37-setuptools-63.1.0_1.pkg /mnt/scripts/pvr/python37-3.7.17.pkg || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" lock -y mono6.8
 	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
 ###
