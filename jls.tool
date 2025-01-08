@@ -509,6 +509,9 @@ if [ "${jlType}" = "plex" ]; then
 	sudo iocage exec -f "${jlName}" -- "service tautulli start"
 	sudo iocage exec -f "${jlName}" -- "service plexmediaserver_plexpass start"
 
+	# Final configuration
+	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/plex/dak180.crontab"
+
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
 	sudo iocage set boot="1" "${jlName}"
@@ -572,6 +575,8 @@ elif [ "${jlType}" = "trans" ] || [ "${jlType}" = "transmission" ]; then
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_conf_dir="/var/db/transmission"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_download_dir="/mnt/incoming/transmission"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_flags="--incomplete-dir /mnt/torrents --logfile /var/log/transmission.log"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_log="/var/log/transmission.log"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_log_level="info"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc transmission_watch_dir="/mnt/transmission"'
 
 	## OpenVPN config
@@ -623,8 +628,10 @@ elif [ "${jlType}" = "unifi" ]; then
 	# Set Mounts
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/share/java/unifi/"'
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/crowdsec/"'
 
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/unifi /usr/local/share/java/unifi/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/crowdsec /usr/local/etc/crowdsec/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -637,12 +644,13 @@ elif [ "${jlType}" = "unifi" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -Ay openjdk17 mongodb60 || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" install -y unifi8 || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y unifi8 crowdsec || { echo "Failed to install packages." >&2; exit 1;}
 
 	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb60 unifi8
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc crowdsec_enable="YES"'
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
@@ -661,7 +669,7 @@ elif [ "${jlType}" = "netdata" ]; then
 	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" mount_devfs="1" mount_fdescfs="1" mount_procfs="1" securelevel="-1" allow_sysvipc="1" sysvmsg="inherit" sysvsem="inherit" sysvshm="inherit" allow_mount_devfs="1" allow_mount_procfs="1" priority="1" "${_netdata[@]}"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" mount_devfs="1" mount_fdescfs="1" mount_procfs="1" securelevel="-1" allow_sysvipc="1" sysvmsg="inherit" sysvsem="inherit" sysvshm="inherit" allow_mount_devfs="1" allow_mount_procfs="1" priority="2" "${_netdata[@]}"; then
 		exit 1
 	fi
 
@@ -708,7 +716,7 @@ elif [ "${jlType}" = "pvr" ]; then
 	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mlock="1" allow_set_hostname="1" "${_pvr[@]}"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mlock="1" allow_set_hostname="1" depends="plex transmission flaresolverr" "${_pvr[@]}"; then
 		exit 1
 	fi
 
@@ -965,7 +973,7 @@ elif [ "${jlType}" = "search" ]; then
 	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" mount_procfs="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="1" "${_search[@]}"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" mount_procfs="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" host_hostname="elasticsearch" priority="2" "${_search[@]}"; then
 		exit 1
 	fi
 
