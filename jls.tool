@@ -1053,7 +1053,7 @@ elif [ "${jlType}" = "test" ]; then
 	jl_init
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y phoronix-test-suite-php74 autoconf automake cmake gmake openjdk8 perl5 pkgconf python python3 || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y phoronix-test-suite-php85 autoconf automake cmake gmake openjdk8 perl5 pkgconf python python3 || { echo "Failed to install packages." >&2; exit 1;}
 
 	# Check MAC Address
 	sudo iocage get vnet0_mac "${jlName}"
