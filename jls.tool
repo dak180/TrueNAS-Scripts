@@ -192,16 +192,16 @@ vnet0_mac="02ff602be694 02ff602be695"
 # ${thingPath}/Torrents is set and is r/w by `jailmedia`
 # ${jDataPath}/sonarr is set and is owned by `sonarr`
 # ${jDataPath}/radarr is set and is owned by `radarr`
-# ${jDataPath}/jackett is set and is owned by `jackett`
 # ${jDataPath}/bazarr is set and is owned by `bazarr`
 ### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
-# mono6.8-6.8.0.123.txz, py37-pillow-7.0.0.txz, py37-olefile-0.46.txz, py37-tkinter-3.7.17_6.pkg, py37-setuptools-63.1.0_1.pkg, python37-3.7.17.pkg, and ca-root-nss.crt are in ${scriptPth}/pvr
+# mono6.8-6.8.0.123.txz, py37-pillow-7.0.0.txz, py37-olefile-0.46.txz and ca-root-nss.crt are in ${scriptPth}/pvr
 
 
 # In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it, and that the plex and transmission jails should start first.
 _pvr=(
 vnet="1"
 allow_raw_sockets="1"
+allow_mlock="1"
 ip6="disable"
 interfaces="vnet0:bridge60"
 vnet_default_interface="vlan60"
@@ -209,7 +209,32 @@ resolver="${resolver60}"
 bpf="1"
 dhcp="1"
 vnet0_mac="02ff60df8049 02ff60df804a"
-depends="plex transmission flaresolverr"
+)
+
+}
+
+# Jackett
+{
+# Checklist before creating this jail:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `jackett` is created on the main system with UID `354`
+# ${jDataPath}/jackett is set and is owned by `jackett`
+### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
+# mono6.8-6.8.0.123.txz, py37-pillow-7.0.0.txz, py37-olefile-0.46.txz and ca-root-nss.crt are in ${scriptPth}/pvr
+
+
+# In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it, and that the plex and transmission jails should start first.
+_jackett=(
+vnet="1"
+allow_raw_sockets="1"
+allow_mlock="1"
+ip6="disable"
+interfaces="vnet0:bridge60"
+vnet_default_interface="vlan60"
+resolver="${resolver60}"
+bpf="1"
+dhcp="1"
+# vnet0_mac="02ff60df8049 02ff60df804a"
 )
 
 }
@@ -716,20 +741,19 @@ elif [ "${jlType}" = "pvr" ]; then
 	{
 
 	# Create jail
-	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mlock="1" allow_set_hostname="1" depends="plex transmission flaresolverr" "${_pvr[@]}"; then
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" depends="plex transmission jackett" "${_pvr[@]}"; then
 		exit 1
 	fi
 
 	# Set Mounts
 	comn_mnt_pnts
-	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/jackett/" "/usr/local/bazarr/"'
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/torrents/" "/mnt/transmission/" "/usr/local/sonarr/" "/usr/local/radarr/" "/usr/local/bazarr/"'
 
 	sudo iocage fstab -a "${jlName}" "${mediaPth} /media/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${torntPath} /mnt/torrents/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${thingPath}/Torrents /mnt/transmission/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/sonarr /usr/local/sonarr/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/radarr /usr/local/radarr/ nullfs rw 0 0"
-	sudo iocage fstab -a "${jlName}" "${jDataPath}/jackett /usr/local/jackett/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/bazarr /usr/local/bazarr/ nullfs rw 0 0"
 
 	# Generic Configuration
@@ -742,17 +766,9 @@ elif [ "${jlType}" = "pvr" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/sonarr/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y sonarr jackett radarr bazarr mediainfo ca_root_nss || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" lock -y jackett
-
-### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
-	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz /mnt/scripts/pvr/py37-pillow-7.0.0.txz /mnt/scripts/pvr/py37-olefile-0.46.txz /mnt/scripts/pvr/py37-tkinter-3.7.17_6.pkg /mnt/scripts/pvr/py37-setuptools-63.1.0_1.pkg /mnt/scripts/pvr/python37-3.7.17.pkg || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" lock -y mono6.8
-	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
-###
+	sudo iocage pkg "${jlName}" install -y sonarr radarr bazarr mediainfo ca_root_nss || { echo "Failed to install packages." >&2; exit 1;}
 
 	# Set permissions
-	sudo iocage exec -f "${jlName}" -- "chown -R jackett:jackett /usr/local/share/jackett/"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m sonarr"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m radarr"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m jackett"
@@ -762,13 +778,67 @@ elif [ "${jlType}" = "pvr" ]; then
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc sonarr_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc radarr_enable="YES"'
-	sudo iocage exec -f "${jlName}" -- 'sysrc jackett_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc bazarr_enable="YES"'
 
-	sudo iocage exec -f "${jlName}" -- "service jackett start"
 	sudo iocage exec -f "${jlName}" -- "service sonarr start"
 	sudo iocage exec -f "${jlName}" -- "service radarr start"
 	sudo iocage exec -f "${jlName}" -- "service bazarr start"
+
+	# Set jail to start at boot.
+	sudo iocage stop "${jlName}"
+	sudo iocage set boot="1" "${jlName}"
+
+	# Check MAC Address
+	sudo iocage get vnet0_mac "${jlName}"
+
+	# Create initial snapshot
+	sudo iocage snapshot "${jlName}" -n InitialConfiguration
+	sudo iocage start "${jlName}"
+	}
+elif [ "${jlType}" = "jackett" ]; then
+	jlName="jackett"
+	{
+
+	# Create jail
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_set_hostname="1" depends="flaresolverr" "${_jackett[@]}"; then
+		exit 1
+	fi
+
+	# Set Mounts
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/jackett/"'
+
+
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/jackett /usr/local/jackett/ nullfs rw 0 0"
+
+	# Generic Configuration
+	usrpths
+	jl_init
+	if [ ! -f "${jDataPath}/jackett/.bash_history" ]; then
+		sudo touch "${jDataPath}/jackett/.bash_history"
+	fi
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/jackett/.bash_history" "/root/.bash_history"'
+
+	# Install packages
+	sudo iocage pkg "${jlName}" install -y jackett || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" lock -y jackett
+	pkg_repo
+
+### mono fixes (see: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=258709)
+	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/mono6.8-6.8.0.123.txz /mnt/scripts/pvr/py37-pillow-7.0.0.txz /mnt/scripts/pvr/py37-olefile-0.46.txz /mnt/scripts/pvr/py37-tkinter-3.7.17_6.pkg /mnt/scripts/pvr/py37-setuptools-63.1.0_1.pkg /mnt/scripts/pvr/python37-3.7.17.pkg || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" lock -y mono6.8
+	sudo iocage exec -f "${jlName}" -- 'cert-sync "/mnt/scripts/pvr/ca-root-nss.crt"'
+###
+
+	# Set permissions
+	sudo iocage exec -f "${jlName}" -- "chown -R jackett:jackett /usr/local/share/jackett/"
+	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m jackett"
+
+
+	# Enable Services
+	sudo iocage exec -f "${jlName}" -- 'sysrc jackett_enable="YES"'
+
+	sudo iocage exec -f "${jlName}" -- "service jackett start"
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
