@@ -643,10 +643,10 @@ elif [ "${jlType}" = "unifi" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -Ay openjdk17 mongodb60 || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" install -y unifi8 crowdsec || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -Ay openjdk17 mongodb70 || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y unifi9 crowdsec || { echo "Failed to install packages." >&2; exit 1;}
 
-	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb60 unifi8
+	sudo iocage pkg "${jlName}" lock -y openjdk17 mongodb70 unifi9
 
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
