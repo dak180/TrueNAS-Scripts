@@ -771,17 +771,24 @@ elif [ "${jlType}" = "pvr" ]; then
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m sonarr"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m radarr"
-	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m jackett"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m bazarr"
 
 
 	# Enable Services
-	sudo iocage exec -f "${jlName}" -- 'sysrc sonarr_enable="YES"'
-	sudo iocage exec -f "${jlName}" -- 'sysrc radarr_enable="YES"'
+### daemon substitution see: https://www.reddit.com/r/freebsd/comments/1b9ijv6/radarr_not_working_after_jail_update/
+	sudo iocage exec -f "${jlName}" -- 'cp -a /mnt/scripts/pvr/sonarr_custom /usr/local/etc/rc.d/'
+	sudo iocage exec -f "${jlName}" -- 'cp -a /mnt/scripts/pvr/radarr_custom /usr/local/etc/rc.d/'
+
+	sudo iocage exec -f "${jlName}" -- 'sysrc sonarr_custom_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc radarr_custom_enable="YES"'
+###
+
+#	sudo iocage exec -f "${jlName}" -- 'sysrc sonarr_enable="YES"'
+#	sudo iocage exec -f "${jlName}" -- 'sysrc radarr_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc bazarr_enable="YES"'
 
-	sudo iocage exec -f "${jlName}" -- "service sonarr start"
-	sudo iocage exec -f "${jlName}" -- "service radarr start"
+	sudo iocage exec -f "${jlName}" -- "service sonarr_custom start"
+	sudo iocage exec -f "${jlName}" -- "service radarr_custom start"
 	sudo iocage exec -f "${jlName}" -- "service bazarr start"
 
 	# Set jail to start at boot.
