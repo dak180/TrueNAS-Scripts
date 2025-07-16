@@ -450,6 +450,16 @@ function jl_init {
 	sudo iocage exec -f "${jlName}" -- "pw groupadd -n jailmedia -g 1001"
 }
 
+function pkg_cache {
+
+	local cache_set="$(sudo iocage exec -f "${jlName}" -- 'grep "/mnt/pkg-cache" "/usr/local/etc/pkg.conf"')"
+
+	if [ -z "${cache_set}" ]; then
+		sudo iocage exec -f "${jlName}" -- 'echo "PKG_CACHEDIR: /mnt/pkg-cache" >> "/usr/local/etc/pkg.conf"'
+	fi
+
+}
+
 function pkg_repo {
 	# Set latest pkg repo
 	sudo iocage exec -f "${jlName}" -- "mkdir -p /usr/local/etc/pkg/repos"
@@ -461,7 +471,7 @@ FreeBSD: {
 
 EOF'
 
-	sudo iocage exec -f "${jlName}" -- 'echo "PKG_CACHEDIR: /mnt/pkg-cache" >> "/usr/local/etc/pkg.conf"'
+	pkg_cache
 }
 
 
