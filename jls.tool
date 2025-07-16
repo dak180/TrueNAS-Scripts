@@ -119,7 +119,6 @@ vnet_default_interface="vlan60"
 resolver="${resolver60}"
 bpf="1"
 dhcp="1"
-vnet0_mac="4a3a78771683 4a3a78771682"
 )
 
 # Name of openvpn config file
@@ -147,8 +146,6 @@ vnet_default_interface="none"
 resolver="${resolver04}"
 bpf="1"
 dhcp="1"
-vnet0_mac="02ff608700b4 02ff608700b5"
-vnet1_mac="02ff60680091 02ff60680092"
 )
 
 }
@@ -173,7 +170,6 @@ allow_raw_sockets="1"
 nat="1"
 nat_forwards="tcp(19999:19999)"
 interfaces="vnet0:bridge0"
-vnet0_mac="02ff602be694 02ff602be695"
 )
 
 }
@@ -208,7 +204,6 @@ vnet_default_interface="vlan60"
 resolver="${resolver60}"
 bpf="1"
 dhcp="1"
-vnet0_mac="02ff60df8049 02ff60df804a"
 )
 
 }
@@ -234,7 +229,6 @@ vnet_default_interface="vlan60"
 resolver="${resolver60}"
 bpf="1"
 dhcp="1"
-# vnet0_mac="02ff60df8049 02ff60df804a"
 )
 
 }
@@ -258,7 +252,6 @@ vnet_default_interface="vlan60"
 resolver="${resolver60}"
 bpf="1"
 dhcp="1"
-vnet0_mac="02ff60717d7b 02ff60717d7c"
 )
 
 }
@@ -279,7 +272,6 @@ interfaces="vnet0:bridge0"
 vnet_default_interface="vlan10"
 bpf="1"
 dhcp="1"
-vnet0_mac="02ff609935af 02ff609935b0"
 )
 
 }
@@ -306,7 +298,6 @@ interfaces="vnet0:bridge0"
 vnet_default_interface="vlan10"
 bpf="1"
 dhcp="1"
-vnet0_mac="02ff60757089 02ff6075708a"
 )
 
 }
@@ -338,7 +329,6 @@ vnet_default_interface="vlan60"
 resolver="${resolver60}"
 bpf="1"
 dhcp="1"
-vnet0_mac="02ff60ae0444 02ff60ae0445"
 )
 
 }
