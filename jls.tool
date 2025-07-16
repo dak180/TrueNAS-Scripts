@@ -812,6 +812,7 @@ elif [ "${jlType}" = "jackett" ]; then
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/jackett /usr/local/jackett/ nullfs rw 0 0"
 
 	# Generic Configuration
+	pkg_cache
 	usrpths
 	jl_init
 	if [ ! -f "${jDataPath}/jackett/.bash_history" ]; then
