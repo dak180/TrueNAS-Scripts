@@ -452,7 +452,7 @@ function jl_init {
 
 function pkg_cache {
 
-	local cache_set="$(sudo iocage exec -f "${jlName}" -- 'grep "/mnt/pkg-cache" "/usr/local/etc/pkg.conf"')"
+	local cache_set="$(sudo iocage exec -f "${jlName}" -- 'grep "/mnt/pkg-cache" "/usr/local/etc/pkg.conf"; true' 2> /dev/null)"
 
 	if [ -z "${cache_set}" ]; then
 		sudo iocage exec -f "${jlName}" -- 'echo "PKG_CACHEDIR: /mnt/pkg-cache" >> "/usr/local/etc/pkg.conf"'
