@@ -828,7 +828,7 @@ elif [ "${jlType}" = "jackett" ]; then
 	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/jackett/.bash_history" "/root/.bash_history"'
 
 	# Install packages
-	sudo iocage pkg "${jlName}" install -y jackett || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y /mnt/scripts/pvr/jackett-0.22.201.pkg || { echo "Failed to install packages." >&2; exit 1;}
 	sudo iocage pkg "${jlName}" lock -y jackett
 	pkg_repo
 
@@ -840,6 +840,7 @@ elif [ "${jlType}" = "jackett" ]; then
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "chown -R jackett:jackett /usr/local/share/jackett/"
+	sudo iocage exec -f "${jlName}" -- "chmod 1777 /tmp"
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m jackett"
 
 
