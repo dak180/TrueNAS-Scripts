@@ -654,9 +654,11 @@ elif [ "${jlType}" = "unifi" ]; then
 	comn_mnt_pnts
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/share/java/unifi/"'
 	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/crowdsec/"'
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/certs/"'
 
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/unifi /usr/local/share/java/unifi/ nullfs rw 0 0"
 	sudo iocage fstab -a "${jlName}" "${jDataPath}/crowdsec /usr/local/etc/crowdsec/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/cert /mnt/certs/ nullfs rw 0 0"
 
 	# Generic Configuration
 	pkg_repo
@@ -676,6 +678,9 @@ elif [ "${jlType}" = "unifi" ]; then
 	# Enable Services
 	sudo iocage exec -f "${jlName}" -- 'sysrc unifi_enable="YES"'
 	sudo iocage exec -f "${jlName}" -- 'sysrc crowdsec_enable="YES"'
+
+	# Final configuration
+	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/unifi/unifi.crontab"
 
 	# Set jail to start at boot.
 	sudo iocage stop "${jlName}"
