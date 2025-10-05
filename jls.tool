@@ -150,6 +150,24 @@ dhcp="1"
 
 }
 
+# UI
+{
+# Checklist before creating this jail:
+# ${scriptPth} is set and is r/w by `jailmedia`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP and a fixed MAC address pair to go with it.
+_ui=(
+vnet="1"
+allow_raw_sockets="1"
+interfaces="vnet0:bridge0"
+vnet_default_interface="none"
+bpf="1"
+dhcp="1"
+)
+
+}
+
 # Netdata
 {
 # Checklist before creating this jail:
@@ -693,6 +711,67 @@ elif [ "${jlType}" = "unifi" ]; then
 	sudo iocage snapshot "${jlName}" -n InitialConfiguration
 	sudo iocage start "${jlName}"
 	echo "unifi8 takes about 90 secs to intially boot."
+	}
+elif [ "${jlType}" = "ui" ]; then
+	jlName="ui"
+	{
+
+	# Create jail
+	if ! sudo iocage create -b -n "${jlName}" -p "/tmp/pkg.json" -r "${ioRelease}" allow_mount="1" mount_fdescfs="1" mount_procfs="1" allow_mount_procfs="1" enforce_statfs="1" allow_set_hostname="1" priority="1" "${_ui[@]}"; then
+		exit 1
+	fi
+
+	# Set Mounts
+	comn_mnt_pnts
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/share/java/unifi/"'
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/usr/local/etc/crowdsec/"'
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/certs/"'
+	sudo iocage exec -f "${jlName}" -- 'mkdir -pv "/mnt/ssh/"'
+
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/crowdsec /usr/local/etc/crowdsec/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/cert /mnt/certs/ nullfs rw 0 0"
+	sudo iocage fstab -a "${jlName}" "${jDataPath}/ssh /mnt/ssh/ nullfs rw 0 0"
+
+	# Generic Configuration
+	pkg_repo
+	usrpths
+	jl_init
+	if [ ! -f "${jDataPath}/unifi/.bash_history" ]; then
+		sudo touch "${jDataPath}/unifi/.bash_history"
+	fi
+	sudo iocage exec -f "${jlName}" -- 'ln -sf "/usr/local/share/java/unifi/.bash_history" "/root/.bash_history"'
+
+	sudo iocage exec -f "${jlName}" -- "cd /root/ && ln -s /mnt/ssh/unifi/etc/ssh ./.ssh"
+
+
+	# Install packages
+	sudo iocage pkg "${jlName}" install -y crowdsec || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y nut-devel || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y jq jc || { echo "Failed to install packages." >&2; exit 1;}
+
+	# Enable Services
+	sudo iocage exec -f "${jlName}" -- 'sysrc crowdsec_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc nut_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc nut_upslog_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- 'sysrc nut_upsmon_enable="YES"'
+	sudo iocage exec -f "${jlName}" -- "ln -s /mnt/scripts/unifi/unifi_remote_start.sh /usr/local/etc/rc.d/unifi_remote_start.sh"
+	sudo iocage exec -f "${jlName}" -- "ln -fs /mnt/scripts/unifi/nut/nut.conf /usr/local/etc/nut/nut.conf"
+	sudo iocage exec -f "${jlName}" -- "ln -fs /mnt/scripts/unifi/nut/upsmon.conf /usr/local/etc/nut/upsmon.conf"
+	sudo iocage exec -f "${jlName}" -- "ln -fs /mnt/scripts/unifi/nut/upssched.conf /usr/local/etc/nut/upssched.conf"
+
+	# Final configuration
+	sudo iocage exec -f "${jlName}" -- "crontab /mnt/scripts/unifi/ui.crontab"
+
+	# Set jail to start at boot.
+	sudo iocage stop "${jlName}"
+	sudo iocage set boot="1" "${jlName}"
+
+	# Check MAC Address
+	sudo iocage get vnet0_mac "${jlName}"
+
+	# Create initial snapshot
+	sudo iocage snapshot "${jlName}" -n InitialConfiguration
+	sudo iocage start "${jlName}"
 	}
 elif [ "${jlType}" = "netdata" ]; then
 	jlName="netdata"
