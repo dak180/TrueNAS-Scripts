@@ -535,7 +535,7 @@ if [ "${jlType}" = "plex" ]; then
 
 	# Install packages
 	sudo iocage pkg "${jlName}" install -Ay py311-pycryptodomex py311-setuptools || { echo "Failed to install packages." >&2; exit 1;}
-	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg yt-dlp AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver || { echo "Failed to install packages." >&2; exit 1;}
+	sudo iocage pkg "${jlName}" install -y multimedia/plexmediaserver-plexpass tautulli ffmpeg yt-dlp deno AtomicParsley multimedia/libva-intel-driver multimedia/libva-intel-media-driver || { echo "Failed to install packages." >&2; exit 1;}
 
 	# Set permissions
 	sudo iocage exec -f "${jlName}" -- "pw groupmod jailmedia -m plex"
