@@ -162,13 +162,14 @@ function get_auth_token() {
 	if [ -s "${tokenFile}" ]; then
 		authToken="$(jq -Mre ".payload" < "${tokenFile}" | base64 -d | jq -Mre ".token")"
 	else
-		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" -u "${PIA_USER}:${PIA_PASS}" "https://10.0.0.1/authv3/generateToken" 2> /dev/null | jq -Mre '.token')"
+		echo "| Acquiring new auth token." 1>&2
+
+		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --silent --show-error --fail --location --max-time "${curlMaxTime}"--data-urlencode "username=${PIA_USER}" --data-urlencode "password=${PIA_PASS}"   'https://www.privateinternetaccess.com/api/client/v2/token' 2> /dev/null | jq -Mre '.token')"
 
 		if [ -z "${authToken}" ]; then
-			authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --request POST --silent --show-error --fail --location --max-time "${curlMaxTime}" 'https://www.privateinternetaccess.com/api/client/v2/token' --data-urlencode "username=${PIA_USER}" --data-urlencode "password=${PIA_PASS}" 2> /dev/null | jq -Mre '.token')"
-		fi
+			authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" -u "${PIA_USER}:${PIA_PASS}" "https://10.0.0.1/authv3/generateToken" 2> /dev/null | jq -Mre '.token')"
 
-    	echo "| Acquiring new auth token." 1>&2
+		fi
 	fi
 
 	if [ ! -z "${authToken}" ]; then
@@ -203,7 +204,7 @@ function get_payload_and_sig() {
 		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "token=${authToken}" "https://${gatewayAddress}:19999/getSignature" 2> /dev/null | jq -Mre .)"
 
 		printf "%s" "${json}" > "${payloadFile}"
-    	echo "| Acquired new Signature." 1>&2
+	echo "| Acquired new Signature." 1>&2
 	fi
 	Pstatus="$(echo "${json}" | jq -Mre ".status")"
 	Pexpire="$(date -juf '%FT%T' "$(echo "${json}" | jq -Mre ".payload" | base64 -d | jq -Mre ".expires_at")" +'%s' 2> /dev/null)"
