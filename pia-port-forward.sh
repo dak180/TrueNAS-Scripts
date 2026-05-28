@@ -31,6 +31,8 @@ passFile="${vpnDir}/pass.txt"
 varFile="${vpnDir}/vars.tool"
 confFile="${vpnDir}/openvpn.conf"
 gateFile="${tempDir}/gateway.txt"
+gateCert="${tempDir}/gateway.pem"
+gateHost=""
 
 mapfile -t auth < "${passFile}"
 PIA_USER="${auth[0]}"
@@ -143,6 +145,10 @@ function get_gateway_ip() {
 	fi
 
 	gatewayAddress="$(cat "${gateFile}")"
+	if [ ! -s "${gateCert}" ] || [ "${gateFile}" -nt "${gateCert}" ]; then
+		openssl s_client -connect "${gatewayAddress}:19999" -showcerts 2> /dev/null 1> "${gateCert}"
+		gateHost="$(openssl x509 -noout -ext subjectAltName -in "${gateCert}" | grep 'DNS' | sed -e 's|[[:blank:]]*DNS:||')"
+	fi
 
 	echo "${gatewayAddress}"
 	return 0
@@ -201,16 +207,16 @@ function get_payload_and_sig() {
 	if [ -s "${payloadFile}" ]; then
 		json="$(cat "${payloadFile}")"
 	else
-		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "token=${authToken}" "https://${gatewayAddress}:19999/getSignature" 2> /dev/null | jq -Mre .)"
+		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --cacert "${gateCert}" --connect-to "${gateHost}::${gatewayAddress}:" --silent --show-error --fail --location --max-time "${curlMaxTime}" -G --data-urlencode "token=${authToken}" "https://${gateHost}:19999/getSignature" 2> /dev/null | jq -Mre .)"
 
 		printf "%s" "${json}" > "${payloadFile}"
-	echo "| Acquired new Signature." 1>&2
+		echo "| Acquired new Signature." 1>&2
 	fi
 	Pstatus="$(echo "${json}" | jq -Mre ".status")"
 	Pexpire="$(date -juf '%FT%T' "$(echo "${json}" | jq -Mre ".payload" | base64 -d | jq -Mre ".expires_at")" +'%s' 2> /dev/null)"
 
 	if [ ! "${Pstatus}" = "OK" ]; then
-		echo "| Status is not ok." 1>&2
+		echo "| Status is not ok: ${Pstatus}" 1>&2
 		rm -f "${payloadFile}"
 		exit 1
 	elif [ "$(date -ju +'%s' 2> /dev/null)" -ge "${Pexpire}" ]; then
@@ -266,12 +272,12 @@ function refresh_port() {
 	gatewayAddress="${3}"
 	adaptorName="${4}"
 
-	json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${gatewayAddress}:19999/bindPort" 2> /dev/null)"
+	json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --cacert "${gateCert}" --connect-to "${gateHost}::${gatewayAddress}:" --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${gateHost}:19999/bindPort" 2> /dev/null)"
 	bindStatus="$(echo "${json}" | jq -Mre ".status")"
 	bindMessage="$(echo "${json}" | jq -Mre ".message")"
 
 
-	if [ ! "${bindStatus}" = "OK" ]; then
+	if [ ! "${bindStatus}" = "OK" ] || [ ! "${bindStatus}" = "" ]; then
 		echo "| Failed to bind the port: ${bindStatus:="Bad Gateway"}; ${bindMessage:="Incorrect gateway address"}" 1>&2
 		exit 1
 	else
