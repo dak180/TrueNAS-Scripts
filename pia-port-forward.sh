@@ -229,7 +229,7 @@ function get_payload_and_sig() {
 		exit 1
 	fi
 	Pstatus="$(jq -Mre '.status | values' <<< "${json}")"
-	Pexpire="$(date -juf '%FT%T' "$(jq -Mre '.payload | values' <<< "${json}" | base64 -d | jq -Mre '.expires_at')" +'%s' 2> /dev/null)"
+	Pexpire="$(date -juf '%FT%T' "$(jq -Mre '.payload | values' <<< "${json}" | base64 -d | jq -Mre '.expires_at | values' | cut -c '1-19')" +'%s' 2> /dev/null)"
 
 	if [ ! "${Pstatus}" = "OK" ]; then
 		echo "| Status is not ok: ${Pstatus}" 1>&2
