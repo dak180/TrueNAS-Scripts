@@ -100,7 +100,7 @@ function is_port_forwarded() {
 
 	# -pt tests for open port.
 	json="$(transmission-remote -pt 2>&1)"
-	if [ "${json}" == "Port is open: No" ]; then
+	if [ "${json}" == "Port is open: No" ] && [ ! "${payLoadPort}" = "$(transmission-remote -si | grep 'Listen port' | sed -e 's|[[:blank:]]*Listen port: ||')" ]; then
 		echo "| Closed port detected." 1>&2
 		return 1
 	elif [ "${json}" == "Port is open: Yes" ]; then
