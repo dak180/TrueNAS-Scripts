@@ -174,10 +174,9 @@ function get_auth_token() {
 		echo "| Acquiring new auth token." 1>&2
 
 		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --request POST --silent --show-error --fail --location --max-time "${curlMaxTime}" --cacert "/mnt/scripts/trans/_.privateinternetaccess.pem" --data-urlencode "username=${PIA_USER}" --data-urlencode "password=${PIA_PASS}"   'https://www.privateinternetaccess.com/api/client/v2/token' 2> /dev/null)"
-		if [ ! "${?}" = "0" ]; then
-			local tokenError="3"
-		else
-			local tokenError="0"
+		local tokenError="${?}"
+		if [ ! "${tokenError}" = "0" ]; then
+			tokenError="3"
 		fi
 
 		if [ -z "${authToken}" ]; then
