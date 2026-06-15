@@ -97,9 +97,11 @@ function is_port_forwarded() {
 	# test to see if the port is already forwarded
 	# Config
 	local json
+	local currentPort
 
 	# -si gets the session info including the current port
-	if [ ! "${payLoadPort}" = "$(transmission-remote -si | grep 'Listen port' | sed -e 's|[[:blank:]]*Listen port: ||')" ]; then
+	currentPort="$(transmission-remote -si | grep 'Listen port' | sed -e 's|[[:blank:]]*Listen port: ||')"
+	if [ ! "${payLoadPort}" = "${currentPort}" ]; then
 		echo "| Configured port ${currentPort} does not match PIA port ${payLoadPort}." 1>&2
 		return 1
 	fi
