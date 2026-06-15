@@ -147,10 +147,10 @@ function get_gateway_ip() {
 	gatewayAddress="$(cat "${gateFile}")"
 	if [ ! -s "${gateCert}" ] || [ "${gateFile}" -nt "${gateCert}" ]; then
 		openssl s_client -connect "${gatewayAddress}:19999" -showcerts 2> /dev/null 1> "${gateCert}"
-		gateHost="$(openssl x509 -noout -ext subjectAltName -in "${gateCert}" | grep 'DNS' | sed -e 's|[[:blank:]]*DNS:||')"
 	fi
+	gateHost="$(openssl x509 -noout -ext subjectAltName -in "${gateCert}" | grep 'DNS' | sed -e 's|[[:blank:]]*DNS:||')"
 
-	echo "${gatewayAddress}"
+	echo "${gatewayAddress} ${gateHost}"
 	return 0
 }
 
@@ -162,28 +162,43 @@ function get_auth_token() {
     local authToken
     local tokenFile
     tokenFile="${payloadFile}"
+    tokenError="$(cat "${tokenFile}.tokenError" 2> /dev/null)"
 
 	adaptorName="${1}"
 
 	if [ -s "${tokenFile}" ]; then
-		authToken="$(jq -Mre ".payload" < "${tokenFile}" | base64 -d | jq -Mre ".token")"
+		authToken="$(jq -Mre '.payload | values' < "${tokenFile}" | base64 -d | jq -Mre '.token | values')"
+	elif [[ ! "${tokenError:-0}" -le "0" ]]; then
+		tokenError="$(( tokenError - 1 ))"
 	else
 		echo "| Acquiring new auth token." 1>&2
 
-		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --silent --show-error --fail --location --max-time "${curlMaxTime}"--data-urlencode "username=${PIA_USER}" --data-urlencode "password=${PIA_PASS}"   'https://www.privateinternetaccess.com/api/client/v2/token' 2> /dev/null | jq -Mre '.token')"
+		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --request POST --silent --show-error --fail --location --max-time "${curlMaxTime}" --cacert "/mnt/scripts/trans/_.privateinternetaccess.pem" --data-urlencode "username=${PIA_USER}" --data-urlencode "password=${PIA_PASS}"   'https://www.privateinternetaccess.com/api/client/v2/token' 2> /dev/null)"
+		if [ ! "${?}" = "0" ]; the
+			local tokenError="3"
+		else
+			local tokenError="0"
+		fi
 
 		if [ -z "${authToken}" ]; then
-			authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" -u "${PIA_USER}:${PIA_PASS}" "https://10.0.0.1/authv3/generateToken" 2> /dev/null | jq -Mre '.token')"
+			authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" -u "${PIA_USER}:${PIA_PASS}" "https://10.0.0.1/authv3/generateToken" 2> /dev/null)"
 
 		fi
+		authToken="$(jq -Mre '.token | values' <<< "${authToken}")"
 	fi
 
 	if [ ! -z "${authToken}" ]; then
+		rm -f "${tokenFile}.tokenError"
     	echo "${authToken}"
     	return 0
+    elif [ ! "${tokenError}" = "0" ]; then
+		echo "| Skipping the next ${tokenError} attempts." 1>&2
+		echo "${tokenError}" > "${tokenFile}.tokenError"
+		exit 1
     else
 		echo "| Failed to acquire new auth token." 1>&2
 		rm -f "${tokenFile}"
+		echo "${tokenError}" > "${tokenFile}.tokenError"
     	exit 1
     fi
 }
@@ -206,14 +221,15 @@ function get_payload_and_sig() {
 
 	if [ -s "${payloadFile}" ]; then
 		json="$(cat "${payloadFile}")"
-	else
-		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --cacert "${gateCert}" --connect-to "${gateHost}::${gatewayAddress}:" --silent --show-error --fail --location --max-time "${curlMaxTime}" -G --data-urlencode "token=${authToken}" "https://${gateHost}:19999/getSignature" 2> /dev/null | jq -Mre .)"
+	elif [ ! -z "${authToken}" ]; then
+		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --cacert "${gateCert}" --connect-to "${gateHost}::${gatewayAddress}:" --silent --show-error --fail --location --max-time "${curlMaxTime}" -G --data-urlencode "token=${authToken}" --http1.1 "https://${gateHost}:19999/getSignature" 2> /dev/null | jq -Mre . | tee "${payloadFile}")"
 
-		printf "%s" "${json}" > "${payloadFile}"
 		echo "| Acquired new Signature." 1>&2
+	else
+		exit 1
 	fi
-	Pstatus="$(echo "${json}" | jq -Mre ".status")"
-	Pexpire="$(date -juf '%FT%T' "$(echo "${json}" | jq -Mre ".payload" | base64 -d | jq -Mre ".expires_at")" +'%s' 2> /dev/null)"
+	Pstatus="$(jq -Mre '.status | values' <<< "${json}")"
+	Pexpire="$(date -juf '%FT%T' "$(jq -Mre '.payload | values' <<< "${json}" | base64 -d | jq -Mre '.expires_at')" +'%s' 2> /dev/null)"
 
 	if [ ! "${Pstatus}" = "OK" ]; then
 		echo "| Status is not ok: ${Pstatus}" 1>&2
@@ -273,11 +289,11 @@ function refresh_port() {
 	adaptorName="${4}"
 
 	json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --cacert "${gateCert}" --connect-to "${gateHost}::${gatewayAddress}:" --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${gateHost}:19999/bindPort" 2> /dev/null)"
-	bindStatus="$(echo "${json}" | jq -Mre ".status")"
-	bindMessage="$(echo "${json}" | jq -Mre ".message")"
+	bindStatus="$(jq -Mre '.status | values' <<< "${json}")"
+	bindMessage="$(jq -Mre '.message | values' <<< "${json}")"
 
 
-	if [ ! "${bindStatus}" = "OK" ] || [ ! "${bindStatus}" = "" ]; then
+	if [ ! "${bindStatus}" = "OK" ]; then
 		echo "| Failed to bind the port: ${bindStatus:="Bad Gateway"}; ${bindMessage:="Incorrect gateway address"}" 1>&2
 		exit 1
 	else
@@ -310,7 +326,8 @@ fi
 
 
 # Parse Payload
-payloadPlusSig="$(get_payload_and_sig "$(get_auth_token "${tunnelAdapter}")" "$(get_gateway_ip)" "${tunnelAdapter}")"
+read -r gateIP gateHost <<< "$(get_gateway_ip)"
+payloadPlusSig="$(get_payload_and_sig "$(get_auth_token "${tunnelAdapter}")" "${gateIP}" "${tunnelAdapter}")"
 
 # Try to catch error conditions
 if [ -z "${payloadPlusSig}" ]; then
@@ -335,6 +352,6 @@ if [ "${portStatus}" = "1" ]; then
 fi
 
 # Refresh the port
-refresh_port "${payLoad}" "${payloadSig}" "$(get_gateway_ip)" "${tunnelAdapter}"
+refresh_port "${payLoad}" "${payloadSig}" "${gateIP}" "${tunnelAdapter}"
 
 exit 0
