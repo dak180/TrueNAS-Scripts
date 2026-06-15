@@ -98,9 +98,15 @@ function is_port_forwarded() {
 	# Config
 	local json
 
+	# -si gets the session info including the current port
+	if [ ! "${payLoadPort}" = "$(transmission-remote -si | grep 'Listen port' | sed -e 's|[[:blank:]]*Listen port: ||')" ]; then
+		echo "| Configured port ${currentPort} does not match PIA port ${payLoadPort}." 1>&2
+		return 1
+	fi
+
 	# -pt tests for open port.
 	json="$(transmission-remote -pt 2>&1)"
-	if [ "${json}" == "Port is open: No" ] && [ ! "${payLoadPort}" = "$(transmission-remote -si | grep 'Listen port' | sed -e 's|[[:blank:]]*Listen port: ||')" ]; then
+	if [ "${json}" == "Port is open: No" ] ; then
 		echo "| Closed port detected." 1>&2
 		return 1
 	elif [ "${json}" == "Port is open: Yes" ]; then
@@ -323,6 +329,10 @@ else
 	tunnelAdapter="$(VPN_Status)"
 fi
 
+if [ -z "${tunnelAdapter}" ]; then
+	echo "| Could not find tunnel adapter." 1>&2
+	exit 1
+fi
 
 # Parse Payload
 read -r gateIP gateHost <<< "$(get_gateway_ip)"
