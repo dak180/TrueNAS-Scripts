@@ -179,14 +179,27 @@ function get_auth_token() {
 	else
 		echo "| Acquiring new auth token." 1>&2
 
-		authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --request POST --silent --show-error --fail --location --max-time "${curlMaxTime}" --cacert "/mnt/scripts/trans/_.privateinternetaccess.pem" --data-urlencode "username=${PIA_USER}" --data-urlencode "password=${PIA_PASS}"   'https://www.privateinternetaccess.com/api/client/v2/token' 2> /dev/null)"
+		authToken="$(sudo -u "${vpnUser}" -- curl \
+		--interface "${adaptorName}" \
+		--request POST \
+		--silent --show-error --fail --location \
+		--max-time "${curlMaxTime}" \
+		--data-urlencode "username=${PIA_USER}" \
+		--data-urlencode "password=${PIA_PASS}" \
+		'https://www.privateinternetaccess.com/api/client/v2/token' 2> /dev/null)"
 		local tokenError="${?}"
 		if [ ! "${tokenError}" = "0" ]; then
 			tokenError="3"
 		fi
 
 		if [ -z "${authToken}" ]; then
-			authToken="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --insecure --silent --show-error --fail --location --max-time "${curlMaxTime}" -u "${PIA_USER}:${PIA_PASS}" "https://10.0.0.1/authv3/generateToken" 2> /dev/null)"
+			authToken="$(sudo -u "${vpnUser}" -- curl \
+			--http1.1 --no-alpn \
+			--interface "${adaptorName}" \
+			--get --insecure --silent --show-error --fail --location \
+			--max-time "${curlMaxTime}" \
+			-u "${PIA_USER}:${PIA_PASS}" \
+			"https://10.0.0.1/authv3/generateToken" 2> /dev/null)"
 
 		fi
 		authToken="$(jq -Mre '.token | values' <<< "${authToken}")"
@@ -227,7 +240,17 @@ function get_payload_and_sig() {
 	if [ -s "${payloadFile}" ]; then
 		json="$(cat "${payloadFile}")"
 	elif [ ! -z "${authToken}" ]; then
-		json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --cacert "${gateCert}" --connect-to "${gateHost}::${gatewayAddress}:" --silent --show-error --fail --location --max-time "${curlMaxTime}" -G --data-urlencode "token=${authToken}" --http1.1 "https://${gateHost}:19999/getSignature" 2> /dev/null | jq -Mre . | tee "${payloadFile}")"
+		json="$(sudo -u "${vpnUser}" -- curl \
+		--http1.1 --no-alpn \
+		--interface "${adaptorName}" \
+		--cacert "${gateCert}" \
+		--connect-to "${gateHost}::${gatewayAddress}:" \
+		--silent --show-error --fail --location -G \
+		--max-time "${curlMaxTime}" \
+		--data-urlencode "token=${authToken}" \
+		"https://${gateHost}:19999/getSignature" 2> /dev/null \
+		| jq -Mre . \
+		| tee "${payloadFile}")"
 
 		echo "| Acquired new Signature." 1>&2
 	else
@@ -293,7 +316,17 @@ function refresh_port() {
 	gatewayAddress="${3}"
 	adaptorName="${4}"
 
-	json="$(sudo -u "${vpnUser}" -- curl --interface "${adaptorName}" --get --cacert "${gateCert}" --connect-to "${gateHost}::${gatewayAddress}:" --silent --show-error --fail --location --max-time "${curlMaxTime}" --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${gateHost}:19999/bindPort" 2> /dev/null)"
+	json="$(sudo -u "${vpnUser}" -- curl \
+	--http1.1 --no-alpn \
+	--interface "${adaptorName}" \
+	--get \
+	--cacert "${gateCert}" \
+	--connect-to "${gateHost}::${gatewayAddress}:" \
+	--silent --show-error --fail --location \
+	--max-time "${curlMaxTime}" \
+	--data-urlencode "payload=${payload}" \
+	--data-urlencode "signature=${signature}" \
+	"https://${gateHost}:19999/bindPort" 2> /dev/null)"
 	bindStatus="$(jq -Mre '.status | values' <<< "${json}")"
 	bindMessage="$(jq -Mre '.message | values' <<< "${json}")"
 
