@@ -137,7 +137,10 @@ EOL
 	elif ! grep -q "^script-security" < "${confFile}"; then
 		tee -a "${confFile}" <<< "script-security 2"
 	fi
-	tee -a "${confFile}" <<< "up \'${varFile}\'"
+
+	if ! grep -q "^up '${varFile}'" < "${confFile}"; then
+		tee -a "${confFile}" <<< "up '${varFile}'"
+	fi
 	restart_vpn
 }
 
