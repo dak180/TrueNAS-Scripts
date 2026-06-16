@@ -200,8 +200,11 @@ function get_auth_token() {
 		if [ -z "${authToken}" ]; then
 			authToken="$(sudo -u "${vpnUser}" -- curl \
 			--http1.1 --no-alpn \
+			--tlsv1.2 --tls-max 1.2 \
 			--interface "${adaptorName}" \
-			--get --insecure --silent --show-error --fail --location \
+			--get \
+			--insecure \
+			--silent --show-error --fail --location \
 			--max-time "${curlMaxTime}" \
 			-u "${PIA_USER}:${PIA_PASS}" \
 			"https://10.0.0.1/authv3/generateToken" 2> /dev/null)"
@@ -247,10 +250,12 @@ function get_payload_and_sig() {
 	elif [ ! -z "${authToken}" ]; then
 		json="$(sudo -u "${vpnUser}" -- curl \
 		--http1.1 --no-alpn \
+		--tlsv1.2 --tls-max 1.2 \
 		--interface "${adaptorName}" \
+		--get \
 		--cacert "${gateCert}" \
 		--connect-to "${gateHost}::${gatewayAddress}:" \
-		--silent --show-error --fail --location -G \
+		--silent --show-error --fail --location \
 		--max-time "${curlMaxTime}" \
 		--data-urlencode "token=${authToken}" \
 		"https://${gateHost}:19999/getSignature" 2> /dev/null \
@@ -323,6 +328,7 @@ function refresh_port() {
 
 	json="$(sudo -u "${vpnUser}" -- curl \
 	--http1.1 --no-alpn \
+	--tlsv1.2 --tls-max 1.2 \
 	--interface "${adaptorName}" \
 	--get \
 	--cacert "${gateCert}" \
