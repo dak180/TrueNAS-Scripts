@@ -197,6 +197,7 @@ function get_auth_token() {
 			tokenError="3"
 		fi
 
+		# The internal endpoints lie about supporting http2 and tls1.3
 		if [ -z "${authToken}" ]; then
 			authToken="$(sudo -u "${vpnUser}" -- curl \
 			--http1.1 --no-alpn \
@@ -248,6 +249,7 @@ function get_payload_and_sig() {
 	if [ -s "${payloadFile}" ]; then
 		json="$(cat "${payloadFile}")"
 	elif [ ! -z "${authToken}" ]; then
+		# The internal endpoints lie about supporting http2 and tls1.3
 		json="$(sudo -u "${vpnUser}" -- curl \
 		--http1.1 --no-alpn \
 		--tlsv1.2 --tls-max 1.2 \
@@ -326,6 +328,7 @@ function refresh_port() {
 	gatewayAddress="${3}"
 	adaptorName="${4}"
 
+	# The internal endpoints lie about supporting http2 and tls1.3
 	json="$(sudo -u "${vpnUser}" -- curl \
 	--http1.1 --no-alpn \
 	--tlsv1.2 --tls-max 1.2 \
