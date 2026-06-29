@@ -82,20 +82,24 @@ collectTelemetry | jq -n -R '
 		.[] |
 		if .[0] == "HBA" then
 			{
-				device_id: .[1],
-				type: "hba",
-				model: (.[3:] | join(" ")),
-				temperature_c: (.[2] | tonumber)
+				key: .[1],
+				value: {
+					type: "hba",
+					model: (.[3:] | join(" ")),
+					temperature_c: (.[2] | tonumber)
+				}
 			}
 		elif .[0] == "EXP" then
 			{
-				device_id: .[1],
-				type: "expander",
-				model: (.[3:] | join(" ")),
-				temperature_c: (.[2] | tonumber)
+				key: .[1],
+				value: {
+					type: "expander",
+					model: (.[3:] | join(" ")),
+					temperature_c: (.[2] | tonumber)
+				}
 			}
 		else
 			empty
 		end
-	]
+	] | from_entries
 '
