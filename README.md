@@ -4,11 +4,11 @@
 
 `FanControl.tool {-c configFile} {-t|-f|-d}`
 
-This tool is meant to control case fans via ipmi to maintain target disk and HBA temperatures using a PID control loop on TrueNAS Core. It also allows you to get a readout of current temps and fan speeds.
+This tool is meant to control case fans via ipmi to maintain target disk and HBA temperatures using a PID control loop on TrueNAS Core or Scale. It also allows you to get a readout of current temps and fan speeds.
 
 The first run of the script will write out a default config file to the specified location; this file will need to be edited to conform to your system.
 
-Most of the first sections of the config file should be fairly self explanatory, so starting with `lsi_temp` in the **List of HBAs** section: this is the path to a compiled binary of the [lsi_temp](https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2) helper program which gets the temp of LSI HBA cards that support it (SAS 3+ generally)
+Most of the first sections of the config file should be fairly self explanatory, so starting with `lsi_temp` in the **List of HBAs** section: this is the path to a compiled binary of the [lsi_temp](https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2) helper program which gets the temp of LSI HBA cards that support it (SAS 3+ generally). `lsi_temp.tool` is used instead on Scale.
 
 `hbaName` is a list of both HBAs and expanders that support temp sensors.
 
@@ -28,6 +28,9 @@ It is suggested that following invocation be used to run this script from a Post
 ```bash
 /usr/sbin/daemon -t "FanControl" -P "/var/run/daemon-FanControl.pid" -p "/var/run/FanControl.pid" -Ss "info" -T "FanControl" -R "60" <path>/FanControl.tool -dc "<path>/FanConfig"
 ```
+
+## lsi_temp.tool ##
+A script to extract tempiture info on HBAs and expanders meant to be used by `FanControl.tool` on Scale and other linux flavors.
 
 ## ipfw.rules ##
 
