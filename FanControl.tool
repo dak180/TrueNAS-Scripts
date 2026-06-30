@@ -191,7 +191,14 @@ function cpuTemp {
 	read -ra numberCPUArray <<< "$(seq "0 ${numberCPU}")"
 
 	for coreCPU in "${numberCPUArray[@]}"; do
-		cpuTempCur="$(sysctl -n "dev.cpu.${coreCPU}.temperature" | sed -e 's:C::')"
+		if [ "${systemType}" = "BSD" ]; then
+			cpuTempCur="$(sysctl -n "dev.cpu.${coreCPU}.temperature" | sed -e 's:C::')"
+		else
+			# FixMe: untested
+			local rawCpuTemp
+			rawCpuTemp="$(cat "/sys/class/thermal/thermal_zone${coreCPU}/temp")"
+			cpuTempCur="$(bc <<< "scale=3;${rawCpuTemp} / 1000" | sed -e 's:\..*$::')"
+		fi
 
 # 		Start adding temps for an average.
 		cpuTempAv="$(bc <<< "scale=3;${cpuTempCur} + ${cpuTempAv}")"
@@ -356,7 +363,9 @@ function hbaTemp {
 	for hbaNum in "${hbaName[@]}"; do
 # 		Get the temp for the current hba.
 		if [ -c "/dev/${hbaNum}" ]; then
-			if echo "${hbaNum}" | grep -q "mpr"; then
+			if [ ! "${systemType}" = "BSD" ]; then
+				hbaTempCur="$(lsi_temp.tool | jq -Mre '.${hbaNum}.temperature_c | values')"
+			elif echo "${hbaNum}" | grep -q "mpr"; then
 				# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
 				hbaTempCur="$(${lsi_temp} "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
 			elif echo "${hbaNum}" | grep -q "ses"; then
@@ -413,7 +422,9 @@ function infoTemps {
 		for hbaNum in "${hbaName[@]}"; do
 # 			Get the temp for the current hba.
 			if [ -c "/dev/${hbaNum}" ]; then
-				if echo "${hbaNum}" | grep -q "mpr"; then
+				if [ ! "${systemType}" = "BSD" ]; then
+					hbaTempCur="$(lsi_temp.tool | jq -Mre '.${hbaNum}.temperature_c | values')"
+				elif echo "${hbaNum}" | grep -q "mpr"; then
 					# See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
 					hbaTempCur="$(${lsi_temp} "/dev/${hbaNum}" | grep 'IOC' | cut -d ' ' -f 3)"
 				elif echo "${hbaNum}" | grep -q "ses"; then
@@ -645,6 +656,11 @@ while getopts ":c:tfd" OPTION; do
 	esac
 done
 
+# Check if we are running on BSD
+if [[ "$(uname -mrs)" =~ .*"BSD".* ]]; then
+	systemType="BSD"
+fi
+
 if [ -z "${configFile}" ]; then
 	echo "Please specify a config file location." >&2
 	exit 1
@@ -657,7 +673,7 @@ fi
 . "${configFile}"
 
 # Check if needed software is installed.
-PATH="${PATH}:/usr/local/sbin:/usr/local/bin"
+PATH="$(dirname "${configFile}")/usr/bin/:${PATH}:/usr/local/sbin:/usr/local/bin"
 commands=(
 grep
 sed
@@ -667,11 +683,23 @@ bc
 smartctl
 jq
 ipmitool
+)
+if [ "${systemType}" = "BSD" ]; then
+commands+=(
 sysctl
 sesutil
 )
+else
+commands+=(
+nproc
+lsi_temp.tool
+)
+fi
 for command in "${commands[@]}"; do
 	if ! type "${command}" &> /dev/null; then
+		if [ "${command}" = "lsi_temp.tool" ]; then
+			echo "Download lsi_temp.tool from https://github.com/dak180/TrueNAS-Scripts and place in $(dirname "${configFile}")/usr/bin/" >&2
+		fi
 		echo "${command} is missing, please install" >&2
 		exit 100
 	fi
@@ -736,7 +764,12 @@ fi
 
 
 # Get number of CPUs
-numberCPU="$(bc <<< "$(sysctl -n hw.ncpu) - 1")"
+if [ "${systemType}" = "BSD" ]; then
+	numberCPU="$(bc <<< "$(sysctl -n hw.ncpu) - 1")"
+else
+	# FixMe: untested
+	numberCPU="$(bc <<< "$(nproc) - 1")"
+fi
 
 # Initialize previous run vars.
 : "${prevHDErrorK:="0"}"
