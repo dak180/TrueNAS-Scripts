@@ -49,6 +49,7 @@ diskCheckTempInterval="2"
 
 
 # List of HDs
+# BSD uses daX. Linux uses sdX.
 hdName=(
 da0
 da1
@@ -61,6 +62,7 @@ da7
 )
 
 # List of SSDs
+# BSD uses adaX. Linux uses sdX or nvmeX
 ssdName=(
 ada0
 ada1
@@ -73,9 +75,10 @@ ada5
 # List of HBAs
 # See https://gist.github.com/dak180/cd44e9957e1c4180e7eb6eb000716ee2
 lsi_temp="/mnt/jails/scripts/lsi_temp" # path to compiled program ^
+# Only needed for BSD
 
 # sesutil map -u /dev/sesX will tell you if there are temp sensors in your
-# backplane or expander that you can read.
+# backplane or expander that you can read on bsd. For linux check the output of lsi_temp.tool.
 
 hbaName=(
 mpr0
