@@ -743,7 +743,7 @@ fi
 
 # Set fans to auto on exit
 function scExit {
-	setFanDuty "${autoFanDuty}" "${autoFanDuty}" "${autoFanDuty}" "${autoFanDuty}"
+	setFanDuty "${autoFanDuty}" "100" "100" "100"
 	ipmiWrite
 	exit 0
 }
