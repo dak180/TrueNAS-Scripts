@@ -53,6 +53,11 @@ elif [ -z "${scriptFile}" ]; then
 	exit 1
 fi
 
+# Must be run as root
+if [ ! "$(whoami)" = "root" ]; then
+	echo "Must be run as root." >&2
+	exit 1
+fi
 
 if [ ! -f "${fanControlService}" ]; then
 	writeService
