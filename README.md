@@ -24,10 +24,11 @@ The `ipmiWrite` function is used to write the PWM levels for each fan as a value
 
 The `ipmiRead` function is used to read the PWM levels for each fan as a value from 0 - 100 in hexadecimal; this command is specific to a particular model of board, consult your board manufacture to get the correct command.
 
-It is suggested that following invocation be used to run this script from a Post Init task:
+It is suggested that following invocation be used to run this script from a Post Init task on Core:
 ```bash
 /usr/sbin/daemon -t "FanControl" -P "/var/run/daemon-FanControl.pid" -p "/var/run/FanControl.pid" -Ss "info" -T "FanControl" -R "60" <path>/FanControl.tool -dc "<path>/FanConfig"
 ```
+For Scale use the `start_fancontrol.tool` script in a Post Init task.
 
 ## lsi_temp.tool ##
 A script to extract tempiture info on HBAs and expanders meant to be used by `FanControl.tool` on Scale and other linux flavors.
