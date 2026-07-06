@@ -81,7 +81,7 @@ declare -A _tautulli_vlan10_net=(
 
 }
 
-# Jackett
+# Jackett + FlareSolverr
 {
 # Checklist before creating this container:
 # Ensure a group named `jailmedia` is created on the main system with GID `1001`
