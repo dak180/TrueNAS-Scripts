@@ -140,6 +140,31 @@ declare -A _bazarr_vlan60_net=(
 
 }
 
+# Sonarr
+{
+# Checklist before creating this container:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `sonarr` is created on the main system with UID `351`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${jDataPath}/sonarr is set and is owned by `sonarr`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it.
+declare -A _sonarr=(
+[puid]="351"
+[pgid]="${media_gid}"
+[umask]="${comn_umask}"
+[icon]="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sonarr.svg"
+[networks]="vlan60_net"
+[volumes]="${cDataPath}/sonarr:/config,${mediaPth}:/media"
+)
+declare -A _sonarr_vlan60_net=(
+# [mac_address]=""
+# [ipv4_address]=""
+)
+
+}
+
 EOF
 }
 
@@ -488,6 +513,61 @@ elif [ "${cnType}" = "bazarr" ]; then
 
 		bazarrNetIpv4="_bazarr_${bazarrNetwork}[ipv4_address]"
 		containConfig="$(jq --arg network "${bazarrNetwork}" --arg ipv4_address "${!bazarrNetIpv4}" '.services.bazarr.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
+	done
+}
+
+	dockerWrite "${cnType}" "${containConfig}"
+}
+elif [ "${cnType}" = "sonarr" ]; then
+{
+	containConfig="{}"
+	containConfig="$(jq '. += {"services": {},"networks": {}}' <<< "${containConfig}")"
+
+# Setup the Network
+{
+	mapfile -t containNetworks < <(sed -e 's:,:\n:g' <<< "${_sonarr[networks]}" | uniq)
+	for containNetwork in "${containNetworks[@]}"; do
+		dockerNetwork "${containNetwork}"
+		containConfig="$(jq --arg network "${containNetwork}" '.networks += {($network): {"external": true}}' <<< "${containConfig}")"
+	done
+	mapfile -t sonarrNetworks < <(sed -e 's:,:\n:g' <<< "${_sonarr[networks]}")
+}
+
+# sonarr
+{
+	# Start to build the json
+	containConfig="$(jq '.services += {"sonarr": {"image": "lscr.io/linuxserver/sonarr:latest", "container_name": "sonarr", "environment": [], "volumes": [], "restart": "unless-stopped"}}' <<< "${containConfig}")"
+
+
+	# Setup the environment
+	containConfig="$(jq --arg puid "${_sonarr[puid]}" '.services.sonarr.environment += ["PUID=\($puid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg pgid "${_sonarr[pgid]}" '.services.sonarr.environment += ["PGID=\($pgid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg umask "${_sonarr[umask]}" '.services.sonarr.environment += ["UMASK=\($umask)"]' <<< "${containConfig}")"
+
+	if [ ! -z "${_sonarr[environment]}" ]; then
+		mapfile -t sonarrEnvs < <(sed -e 's:,:\n:g' <<< "${_sonarr[environment]}")
+		for sonarrEnv in "${sonarrEnvs[@]}"; do
+			containConfig="$(jq --arg environment "${sonarrEnv}" '.services.sonarr.environment += [$environment]' <<< "${containConfig}")"
+		done
+	fi
+
+
+	# Add the mounts
+	mapfile -t sonarrMounts < <(sed -e 's:,:\n:g' <<< "${_sonarr[volumes]}")
+	for sonarrMount in "${sonarrMounts[@]}"; do
+		containConfig="$(jq --arg volumes "${sonarrMount}" '.services.sonarr.volumes += [$volumes]' <<< "${containConfig}")"
+	done
+
+
+	# Assign network info
+	for sonarrNetwork in "${sonarrNetworks[@]}"; do
+		sonarrNetMac="_sonarr_${sonarrNetwork}[mac_address]"
+		if [ ! -z "${!sonarrNetMac}" ]; then
+			containConfig="$(jq --arg network "${sonarrNetwork}" --arg mac_address "${!sonarrNetMac}" '.services.sonarr.networks[$network] += {"mac_address": $mac_address}' <<< "${containConfig}")"
+		fi
+
+		sonarrNetIpv4="_sonarr_${sonarrNetwork}[ipv4_address]"
+		containConfig="$(jq --arg network "${sonarrNetwork}" --arg ipv4_address "${!sonarrNetIpv4}" '.services.sonarr.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
 	done
 }
 
