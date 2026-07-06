@@ -267,10 +267,12 @@ if [ "${cnType}" = "plex" ]; then
 	containConfig="$(jq --arg pgid "${_plex[pgid]}" '.services.plex.environment += ["PGID=\($pgid)"]' <<< "${containConfig}")"
 	containConfig="$(jq --arg umask "${_plex[umask]}" '.services.plex.environment += ["UMASK=\($umask)"]' <<< "${containConfig}")"
 
-	mapfile -t plexEnvs < <(sed -e 's:,:\n:g' <<< "${_plex[environment]}")
-	for plexEnv in "${plexEnvs[@]}"; do
-		containConfig="$(jq --arg environment "${plexEnv}" '.services.plex.environment += [$environment]' <<< "${containConfig}")"
-	done
+	if [ ! -z "${_plex[environment]}" ]; then
+		mapfile -t plexEnvs < <(sed -e 's:,:\n:g' <<< "${_plex[environment]}")
+		for plexEnv in "${plexEnvs[@]}"; do
+			containConfig="$(jq --arg environment "${plexEnv}" '.services.plex.environment += [$environment]' <<< "${containConfig}")"
+		done
+	fi
 
 
 	# Add the mounts
@@ -301,6 +303,13 @@ if [ "${cnType}" = "plex" ]; then
 	containConfig="$(jq --arg puid "${_tautulli[puid]}" '.services.tautulli.environment += ["PUID=\($puid)"]' <<< "${containConfig}")"
 	containConfig="$(jq --arg pgid "${_tautulli[pgid]}" '.services.tautulli.environment += ["PGID=\($pgid)"]' <<< "${containConfig}")"
 	containConfig="$(jq --arg umask "${_tautulli[umask]}" '.services.tautulli.environment += ["UMASK=\($umask)"]' <<< "${containConfig}")"
+
+	if [ ! -z "${_tautulli[environment]}" ]; then
+		mapfile -t tautulliEnvs < <(sed -e 's:,:\n:g' <<< "${_tautulli[environment]}")
+		for tautulliEnv in "${tautulliEnvs[@]}"; do
+			containConfig="$(jq --arg environment "${tautulliEnv}" '.services.tautulli.environment += [$environment]' <<< "${containConfig}")"
+		done
+	fi
 
 	# Add the mounts
 	mapfile -t tautulliMounts < <(sed -e 's:,:\n:g' <<< "${_tautulli[volumes]}")
