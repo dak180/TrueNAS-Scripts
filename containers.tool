@@ -50,7 +50,7 @@ declare -A vlan60_net=(
 # ${jDataPath}/Tautulli is set and is owned by `tautulli`
 
 
-# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP and a fixed MAC address pair to go with it.
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP and a fixed MAC address to go with it.
 declare -A _plex=(
 [puid]="972"
 [pgid]="${media_gid}"
@@ -89,7 +89,7 @@ declare -A _tautulli_vlan10_net=(
 # ${jDataPath}/jackett is set and is owned by `jackett`
 
 
-# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it.
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address to go with it.
 declare -A _jackett=(
 [puid]="354"
 [pgid]="${media_gid}"
@@ -109,6 +109,31 @@ declare -A _flaresolverr=(
 [networks]="vlan60_net"
 )
 declare -A _flaresolverr_vlan60_net=(
+# [mac_address]=""
+# [ipv4_address]=""
+)
+
+}
+
+# Bazarr
+{
+# Checklist before creating this container:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `bazarr` is created on the main system with UID `357`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${jDataPath}/bazarr is set and is owned by `bazarr`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address to go with it.
+declare -A _bazarr=(
+[puid]="357"
+[pgid]="${media_gid}"
+[umask]="${comn_umask}"
+[icon]="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/bazarr.svg"
+[networks]="vlan60_net"
+[volumes]="${cDataPath}/bazarr:/config,${mediaPth}:/media"
+)
+declare -A _bazarr_vlan60_net=(
 # [mac_address]=""
 # [ipv4_address]=""
 )
@@ -408,6 +433,61 @@ elif [ "${cnType}" = "jackett" ]; then
 
 		flaresolverrNetIpv4="_flaresolverr_${flaresolverrNetwork}[ipv4_address]"
 		containConfig="$(jq --arg network "${flaresolverrNetwork}" --arg ipv4_address "${!flaresolverrNetIpv4}" '.services.flaresolverr.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
+	done
+}
+
+	dockerWrite "${cnType}" "${containConfig}"
+}
+elif [ "${cnType}" = "bazarr" ]; then
+{
+	containConfig="{}"
+	containConfig="$(jq '. += {"services": {},"networks": {}}' <<< "${containConfig}")"
+
+# Setup the Network
+{
+	mapfile -t containNetworks < <(sed -e 's:,:\n:g' <<< "${_bazarr[networks]}" | uniq)
+	for containNetwork in "${containNetworks[@]}"; do
+		dockerNetwork "${containNetwork}"
+		containConfig="$(jq --arg network "${containNetwork}" '.networks += {($network): {"external": true}}' <<< "${containConfig}")"
+	done
+	mapfile -t bazarrNetworks < <(sed -e 's:,:\n:g' <<< "${_bazarr[networks]}")
+}
+
+# bazarr
+{
+	# Start to build the json
+	containConfig="$(jq '.services += {"bazarr": {"image": "lscr.io/linuxserver/bazarr:latest", "container_name": "bazarr", "environment": [], "volumes": [], "restart": "unless-stopped"}}' <<< "${containConfig}")"
+
+
+	# Setup the environment
+	containConfig="$(jq --arg puid "${_bazarr[puid]}" '.services.bazarr.environment += ["PUID=\($puid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg pgid "${_bazarr[pgid]}" '.services.bazarr.environment += ["PGID=\($pgid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg umask "${_bazarr[umask]}" '.services.bazarr.environment += ["UMASK=\($umask)"]' <<< "${containConfig}")"
+
+	if [ ! -z "${_bazarr[environment]}" ]; then
+		mapfile -t bazarrEnvs < <(sed -e 's:,:\n:g' <<< "${_bazarr[environment]}")
+		for bazarrEnv in "${bazarrEnvs[@]}"; do
+			containConfig="$(jq --arg environment "${bazarrEnv}" '.services.bazarr.environment += [$environment]' <<< "${containConfig}")"
+		done
+	fi
+
+
+	# Add the mounts
+	mapfile -t bazarrMounts < <(sed -e 's:,:\n:g' <<< "${_bazarr[volumes]}")
+	for bazarrMount in "${bazarrMounts[@]}"; do
+		containConfig="$(jq --arg volumes "${bazarrMount}" '.services.bazarr.volumes += [$volumes]' <<< "${containConfig}")"
+	done
+
+
+	# Assign network info
+	for bazarrNetwork in "${bazarrNetworks[@]}"; do
+		bazarrNetMac="_bazarr_${bazarrNetwork}[mac_address]"
+		if [ ! -z "${!bazarrNetMac}" ]; then
+			containConfig="$(jq --arg network "${bazarrNetwork}" --arg mac_address "${!bazarrNetMac}" '.services.bazarr.networks[$network] += {"mac_address": $mac_address}' <<< "${containConfig}")"
+		fi
+
+		bazarrNetIpv4="_bazarr_${bazarrNetwork}[ipv4_address]"
+		containConfig="$(jq --arg network "${bazarrNetwork}" --arg ipv4_address "${!bazarrNetIpv4}" '.services.bazarr.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
 	done
 }
 
