@@ -30,6 +30,11 @@ declare -A vlan10_net=(
 [gateway]="192.168.9.1"
 [bridge]="br10"
 )
+declare -A vlan60_net=(
+[subnet]="192.168.60.0/24"
+[gateway]="192.168.60.1"
+[bridge]="br60"
+)
 
 ##### Container specific settings
 
@@ -70,6 +75,40 @@ declare -A _tautulli=(
 [volumes]="${cDataPath}/Tautulli:/config"
 )
 declare -A _tautulli_vlan10_net=(
+# [mac_address]=""
+# [ipv4_address]=""
+)
+
+}
+
+# Jackett
+{
+# Checklist before creating this container:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `jackett` is created on the main system with UID `354`
+# ${jDataPath}/jackett is set and is owned by `jackett`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it.
+declare -A _jackett=(
+[puid]="354"
+[pgid]="${media_gid}"
+[umask]="${comn_umask}"
+[icon]="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jackett.svg"
+[networks]="vlan60_net"
+[volumes]="${cDataPath}/jackett:/config,${thingPath}/Torrents:/mnt/transmission"
+)
+declare -A _jackett_vlan60_net=(
+# [mac_address]=""
+# [ipv4_address]=""
+)
+
+declare -A _flaresolverr=(
+[environment]="LOG_LEVEL=info"
+[icon]="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/flaresolverr.svg"
+[networks]="vlan60_net"
+)
+declare -A _flaresolverr_vlan60_net=(
 # [mac_address]=""
 # [ipv4_address]=""
 )
@@ -277,6 +316,89 @@ if [ "${cnType}" = "plex" ]; then
 		fi
 		tautulliNetIpv4="_tautulli_${tautulliNetwork}[ipv4_address]"
 		containConfig="$(jq --arg network "${tautulliNetwork}" --arg ipv4_address "${!tautulliNetIpv4}" '.services.tautulli.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
+	done
+}
+
+	dockerWrite "${cnType}" "${containConfig}"
+}
+elif [ "${cnType}" = "jackett" ]; then
+{
+	containConfig="{}"
+	containConfig="$(jq '. += {"services": {},"networks": {}}' <<< "${containConfig}")"
+
+# Setup the Network
+{
+	mapfile -t containNetworks < <(sed -e 's:,:\n:g' <<< "${_jackett[networks]},${_flaresolverr[networks]}" | uniq)
+	for containNetwork in "${containNetworks[@]}"; do
+		dockerNetwork "${containNetwork}"
+		containConfig="$(jq --arg network "${containNetwork}" '.networks += {($network): {"external": true}}' <<< "${containConfig}")"
+	done
+	mapfile -t jackettNetworks < <(sed -e 's:,:\n:g' <<< "${_jackett[networks]}")
+	mapfile -t flaresolverrNetworks < <(sed -e 's:,:\n:g' <<< "${_flaresolverr[networks]}")
+}
+
+# jackett
+{
+	# Start to build the json
+	containConfig="$(jq '.services += {"jackett": {"image": "lscr.io/linuxserver/jackett:latest", "container_name": "jackett", "environment": [], "volumes": [], "restart": "unless-stopped"}}' <<< "${containConfig}")"
+
+
+	# Setup the environment
+	containConfig="$(jq --arg puid "${_jackett[puid]}" '.services.jackett.environment += ["PUID=\($puid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg pgid "${_jackett[pgid]}" '.services.jackett.environment += ["PGID=\($pgid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg umask "${_jackett[umask]}" '.services.jackett.environment += ["UMASK=\($umask)"]' <<< "${containConfig}")"
+
+	if [ ! -z "${_jackett[environment]}" ]; then
+		mapfile -t jackettEnvs < <(sed -e 's:,:\n:g' <<< "${_jackett[environment]}")
+		for jackettEnv in "${jackettEnvs[@]}"; do
+			containConfig="$(jq --arg environment "${jackettEnv}" '.services.jackett.environment += [$environment]' <<< "${containConfig}")"
+		done
+	fi
+
+
+	# Add the mounts
+	mapfile -t jackettMounts < <(sed -e 's:,:\n:g' <<< "${_jackett[volumes]}")
+	for jackettMount in "${jackettMounts[@]}"; do
+		containConfig="$(jq --arg volumes "${jackettMount}" '.services.jackett.volumes += [$volumes]' <<< "${containConfig}")"
+	done
+
+
+	# Assign network info
+	for jackettNetwork in "${jackettNetworks[@]}"; do
+		jackettNetMac="_jackett_${jackettNetwork}[mac_address]"
+		if [ ! -z "${!jackettNetMac}" ]; then
+			containConfig="$(jq --arg network "${jackettNetwork}" --arg mac_address "${!jackettNetMac}" '.services.jackett.networks[$network] += {"mac_address": $mac_address}' <<< "${containConfig}")"
+		fi
+
+		jackettNetIpv4="_jackett_${jackettNetwork}[ipv4_address]"
+		containConfig="$(jq --arg network "${jackettNetwork}" --arg ipv4_address "${!jackettNetIpv4}" '.services.jackett.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
+	done
+}
+
+# flaresolverr
+{
+	# Start to build the json
+	containConfig="$(jq '.services += {"flaresolverr": {"image": "ghcr.io/flaresolverr/flaresolverr:latest", "container_name": "flaresolverr", "environment": [], "volumes": [], "restart": "unless-stopped"}}' <<< "${containConfig}")"
+
+
+	# Setup the environment
+	if [ ! -z "${_flaresolverr[environment]}" ]; then
+		mapfile -t flaresolverrEnvs < <(sed -e 's:,:\n:g' <<< "${_flaresolverr[environment]}")
+		for flaresolverrEnv in "${flaresolverrEnvs[@]}"; do
+			containConfig="$(jq --arg environment "${flaresolverrEnv}" '.services.flaresolverr.environment += [$environment]' <<< "${containConfig}")"
+		done
+	fi
+
+
+	# Assign network info
+	for flaresolverrNetwork in "${flaresolverrNetworks[@]}"; do
+		flaresolverrNetMac="_flaresolverr_${flaresolverrNetwork}[mac_address]"
+		if [ ! -z "${!flaresolverrNetMac}" ]; then
+			containConfig="$(jq --arg network "${flaresolverrNetwork}" --arg mac_address "${!flaresolverrNetMac}" '.services.flaresolverr.networks[$network] += {"mac_address": $mac_address}' <<< "${containConfig}")"
+		fi
+
+		flaresolverrNetIpv4="_flaresolverr_${flaresolverrNetwork}[ipv4_address]"
+		containConfig="$(jq --arg network "${flaresolverrNetwork}" --arg ipv4_address "${!flaresolverrNetIpv4}" '.services.flaresolverr.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
 	done
 }
 
