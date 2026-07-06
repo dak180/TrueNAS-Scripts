@@ -35,7 +35,7 @@ declare -A vlan10_net=(
 
 # Plex + Tautulli
 {
-# Checklist before creating this jail:
+# Checklist before creating this container:
 # Ensure a group named `jailmedia` is created on the main system with GID `1001`
 # Ensure a user named `plex` is created on the main system with UID `972`
 # Ensure a user named `tautulli` is created on the main system with UID `892`
@@ -45,11 +45,12 @@ declare -A vlan10_net=(
 # ${jDataPath}/Tautulli is set and is owned by `tautulli`
 
 
-# In this example we are disabling ipv6, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP and a fixed MAC address pair to go with it.
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP and a fixed MAC address pair to go with it.
 declare -A _plex=(
 [puid]="972"
 [pgid]="${media_gid}"
 [umask]="${comn_umask}"
+[environment]="VERSION=docker"
 [icon]="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/plex.svg"
 [networks]="vlan10_net"
 [volumes]="${cDataPath}/plex:/config,${mediaPth}:/media,${backupPth}/plex:/mnt/dbBackup"
@@ -215,16 +216,23 @@ if [ "${cnType}" = "plex" ]; then
 	# Start to build the json
 	containConfig="$(jq '.services += {"plex": {"image": "lscr.io/linuxserver/plex:latest", "container_name": "plex", "environment": [], "volumes": [], "restart": "unless-stopped"}}' <<< "${containConfig}")"
 
+
 	# Add passthrough devices for transcoding if present
 	if [ ! -z "${_plex[devices]}" ]; then
 		containConfig="$(jq --arg devices "${_plex[devices]}" '.services.plex += {"devices": [$devices]}' <<< "${containConfig}")"
 	fi
 
+
 	# Setup the environment
 	containConfig="$(jq --arg puid "${_plex[puid]}" '.services.plex.environment += ["PUID=\($puid)"]' <<< "${containConfig}")"
 	containConfig="$(jq --arg pgid "${_plex[pgid]}" '.services.plex.environment += ["PGID=\($pgid)"]' <<< "${containConfig}")"
 	containConfig="$(jq --arg umask "${_plex[umask]}" '.services.plex.environment += ["UMASK=\($umask)"]' <<< "${containConfig}")"
-	containConfig="$(jq '.services.plex.environment += ["VERSION=docker"]' <<< "${containConfig}")"
+
+	mapfile -t plexEnvs < <(sed -e 's:,:\n:g' <<< "${_plex[environment]}")
+	for plexEnv in "${plexEnvs[@]}"; do
+		containConfig="$(jq --arg environment "${plexEnv}" '.services.plex.environment += [$environment]' <<< "${containConfig}")"
+	done
+
 
 	# Add the mounts
 	mapfile -t plexMounts < <(sed -e 's:,:\n:g' <<< "${_plex[volumes]}")
@@ -232,12 +240,14 @@ if [ "${cnType}" = "plex" ]; then
 		containConfig="$(jq --arg volumes "${plexMount}" '.services.plex.volumes += [$volumes]' <<< "${containConfig}")"
 	done
 
+
 	# Assign network info
 	for plexNetwork in "${plexNetworks[@]}"; do
 		plexNetMac="_plex_${plexNetwork}[mac_address]"
 		if [ ! -z "${!plexNetMac}" ]; then
 			containConfig="$(jq --arg network "${plexNetwork}" --arg mac_address "${!plexNetMac}" '.services.plex.networks[$network] += {"mac_address": $mac_address}' <<< "${containConfig}")"
 		fi
+
 		plexNetIpv4="_plex_${plexNetwork}[ipv4_address]"
 		containConfig="$(jq --arg network "${plexNetwork}" --arg ipv4_address "${!plexNetIpv4}" '.services.plex.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
 	done
