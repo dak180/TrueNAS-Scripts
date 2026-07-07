@@ -165,6 +165,31 @@ declare -A _sonarr_vlan60_net=(
 
 }
 
+# Radarr
+{
+# Checklist before creating this container:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `radarr` is created on the main system with UID `352`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${cDataPath}/radarr is set and is owned by `radarr`
+
+
+# In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it.
+declare -A _radarr=(
+[puid]="352"
+[pgid]="${media_gid}"
+[umask]="${comn_umask}"
+[icon]="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/radarr.svg"
+[networks]="vlan60_net"
+[volumes]="${cDataPath}/radarr:/config,${mediaPth}:/media"
+)
+declare -A _radarr_vlan60_net=(
+# [mac_address]=""
+# [ipv4_address]=""
+)
+
+}
+
 EOF
 }
 
@@ -568,6 +593,61 @@ elif [ "${cnType}" = "sonarr" ]; then
 
 		sonarrNetIpv4="_sonarr_${sonarrNetwork}[ipv4_address]"
 		containConfig="$(jq --arg network "${sonarrNetwork}" --arg ipv4_address "${!sonarrNetIpv4}" '.services.sonarr.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
+	done
+}
+
+	dockerWrite "${cnType}" "${containConfig}"
+}
+elif [ "${cnType}" = "radarr" ]; then
+{
+	containConfig="{}"
+	containConfig="$(jq '. += {"services": {},"networks": {}}' <<< "${containConfig}")"
+
+# Setup the Network
+{
+	mapfile -t containNetworks < <(sed -e 's:,:\n:g' <<< "${_radarr[networks]}" | uniq)
+	for containNetwork in "${containNetworks[@]}"; do
+		dockerNetwork "${containNetwork}"
+		containConfig="$(jq --arg network "${containNetwork}" '.networks += {($network): {"external": true}}' <<< "${containConfig}")"
+	done
+	mapfile -t radarrNetworks < <(sed -e 's:,:\n:g' <<< "${_radarr[networks]}")
+}
+
+# radarr
+{
+	# Start to build the json
+	containConfig="$(jq '.services += {"radarr": {"image": "lscr.io/linuxserver/radarr:latest", "container_name": "radarr", "environment": [], "volumes": [], "restart": "unless-stopped"}}' <<< "${containConfig}")"
+
+
+	# Setup the environment
+	containConfig="$(jq --arg puid "${_radarr[puid]}" '.services.radarr.environment += ["PUID=\($puid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg pgid "${_radarr[pgid]}" '.services.radarr.environment += ["PGID=\($pgid)"]' <<< "${containConfig}")"
+	containConfig="$(jq --arg umask "${_radarr[umask]}" '.services.radarr.environment += ["UMASK=\($umask)"]' <<< "${containConfig}")"
+
+	if [ ! -z "${_radarr[environment]}" ]; then
+		mapfile -t radarrEnvs < <(sed -e 's:,:\n:g' <<< "${_radarr[environment]}")
+		for radarrEnv in "${radarrEnvs[@]}"; do
+			containConfig="$(jq --arg environment "${radarrEnv}" '.services.radarr.environment += [$environment]' <<< "${containConfig}")"
+		done
+	fi
+
+
+	# Add the mounts
+	mapfile -t radarrMounts < <(sed -e 's:,:\n:g' <<< "${_radarr[volumes]}")
+	for radarrMount in "${radarrMounts[@]}"; do
+		containConfig="$(jq --arg volumes "${radarrMount}" '.services.radarr.volumes += [$volumes]' <<< "${containConfig}")"
+	done
+
+
+	# Assign network info
+	for radarrNetwork in "${radarrNetworks[@]}"; do
+		radarrNetMac="_radarr_${radarrNetwork}[mac_address]"
+		if [ ! -z "${!radarrNetMac}" ]; then
+			containConfig="$(jq --arg network "${radarrNetwork}" --arg mac_address "${!radarrNetMac}" '.services.radarr.networks[$network] += {"mac_address": $mac_address}' <<< "${containConfig}")"
+		fi
+
+		radarrNetIpv4="_radarr_${radarrNetwork}[ipv4_address]"
+		containConfig="$(jq --arg network "${radarrNetwork}" --arg ipv4_address "${!radarrNetIpv4}" '.services.radarr.networks[$network] += {"ipv4_address": $ipv4_address}' <<< "${containConfig}")"
 	done
 }
 
