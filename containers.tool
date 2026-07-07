@@ -274,6 +274,12 @@ function dockerNetwork() {
 		exit 1
 	fi
 
+
+	if [ ! -z "${testing}" ]; then
+		echo "Network Details: ${netName};${!subnet};${!gateway};${!bridge}"
+		return 0
+	fi
+
 	bridgeCheck="$(midclt call interface.query | jq -r --arg bn "${!bridge}" '.[] | select(.type == "BRIDGE" and .name == $bn) | .name')"
 	if [ ! "${bridgeCheck}" = "${!bridge}" ]; then
 		echo "Bridge ${!bridge} does not exist!" >&2
@@ -281,11 +287,8 @@ function dockerNetwork() {
 	fi
 
 
-	if [ ! -z "${testing}" ]; then
-		echo "Network Details: ${netName};${!subnet};${!gateway};${!bridge}"
-		return 0
-	elif docker network ls --format '{{.Name}}' | grep -q "^${netName}$"; then
-		echo "Network matches an existing configuration."
+	if docker network ls --format '{{.Name}}' | grep -q "^${netName}$"; then
+		echo "Network matches an existing configuration." >&2
 		return 0
 	else
 		sudo docker network create -d macvlan \
