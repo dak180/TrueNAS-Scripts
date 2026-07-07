@@ -45,9 +45,9 @@ declare -A vlan60_net=(
 # Ensure a user named `plex` is created on the main system with UID `972`
 # Ensure a user named `tautulli` is created on the main system with UID `892`
 # ${mediaPth} is set and is r/w by `jailmedia`
-# ${jDataPath}/plex is set and is owned by `plex`
+# ${cDataPath}/plex is set and is owned by `plex`
 # ${backupPth}/plex is set and is owned by `plex`
-# ${jDataPath}/Tautulli is set and is owned by `tautulli`
+# ${cDataPath}/Tautulli is set and is owned by `tautulli`
 
 
 # In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the same as the web interface), and set the use of DHCP and a fixed MAC address to go with it.
@@ -86,7 +86,7 @@ declare -A _tautulli_vlan10_net=(
 # Checklist before creating this container:
 # Ensure a group named `jailmedia` is created on the main system with GID `1001`
 # Ensure a user named `jackett` is created on the main system with UID `354`
-# ${jDataPath}/jackett is set and is owned by `jackett`
+# ${cDataPath}/jackett is set and is owned by `jackett`
 
 
 # In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address to go with it.
@@ -121,7 +121,7 @@ declare -A _flaresolverr_vlan60_net=(
 # Ensure a group named `jailmedia` is created on the main system with GID `1001`
 # Ensure a user named `bazarr` is created on the main system with UID `357`
 # ${mediaPth} is set and is r/w by `jailmedia`
-# ${jDataPath}/bazarr is set and is owned by `bazarr`
+# ${cDataPath}/bazarr is set and is owned by `bazarr`
 
 
 # In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address to go with it.
@@ -146,7 +146,7 @@ declare -A _bazarr_vlan60_net=(
 # Ensure a group named `jailmedia` is created on the main system with GID `1001`
 # Ensure a user named `sonarr` is created on the main system with UID `351`
 # ${mediaPth} is set and is r/w by `jailmedia`
-# ${jDataPath}/sonarr is set and is owned by `sonarr`
+# ${cDataPath}/sonarr is set and is owned by `sonarr`
 
 
 # In this example we are setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, a fixed MAC address pair to go with it.
@@ -256,7 +256,7 @@ function dockerNetwork() {
 	fi
 
 
-	if [ -z "${testing}" ]; then
+	if [ ! -z "${testing}" ]; then
 		echo "Network Details: ${netName};${!subnet};${!gateway};${!bridge}"
 		return 0
 	elif docker network ls --format '{{.Name}}' | grep -q "^${netName}$"; then
