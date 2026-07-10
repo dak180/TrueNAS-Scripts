@@ -1,4 +1,5 @@
 #!/usr/local/bin/bash
+# shellcheck shell=bash
 # Config
 
 # Set rules command prefix
