@@ -726,7 +726,7 @@ lxc_name="transmission"
 	sudo truenas-nsexec "${lxc_name}" 'apt-get -y install bash bash-completion tmux wget curl nano sudo fortune-mod fortunes bc'
 
 	# Install main packages
-	sudo truenas-nsexec "${lxc_name}" 'apt-get -y install openvpn coreutils jq nftables'
+	sudo truenas-nsexec "${lxc_name}" 'apt-get -y install openvpn coreutils jq nftables netcat-openbsd openssl iproute2'
 
 	if [ ! -z "${_transmission[version]}" ]; then
 		# Get the download location of the deb
