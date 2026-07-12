@@ -190,6 +190,48 @@ declare -A _radarr_vlan60_net=(
 
 }
 
+# Transmission + OpenVPN (LXC)
+{
+torntPath="/mnt/data/torrents" # a temp location for torrents to land so a different Record Size can be set
+# Checklist before creating this container:
+# Ensure a group named `jailmedia` is created on the main system with GID `1001`
+# Ensure a user named `transmission` is created on the main system with UID `921`
+# ${mediaPth} is set and is r/w by `jailmedia`
+# ${scriptPth} is set and is r/w by `jailmedia`
+# ${jDataPath}/transmission is set and is owned by `transmission`
+# ${jDataPath}/openvpn is set and is owned by `root`
+# ${torntPath} is set and is owned by `transmission` and is r/w by `jailmedia`
+# ${thingPath}/Torrents is set and is r/w by `jailmedia`
+# pia-port-forward.sh, nftables.conf, transmission.crontab, and transmission.logrotate are in ${scriptPth}/trans
+
+
+# In this example we are allowing tun interfaces, setting the name of the bridge we are connecting to (or creating), what interface our trafic will go through (in this case the different from the web interface so we set the appropriate resolver), and set the use of DHCP, and a fixed MAC address pair to go with it.
+declare -A _transmission=(
+[template]="debian"
+[puid]="921"
+[pgid]="${media_gid}"
+[transmission_user]="transmission"
+[group_name]="jailmedia"
+[umask]="${comn_umask}"
+[icon]="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/transmission.svg"
+[version]="4.0.6+dfsg-3"
+[networks]="vlan60_net"
+[volumes]="${cDataPath}/transmission:/var/lib/transmission-daemon/config,${mediaPth}:/mnt/incoming,${torntPath}:/mnt/torrents,${thingPath}/Torrents:/mnt/transmission,${scriptPth}:/mnt/scripts,${userPth}:/mnt/users/dak180"
+# Static route to allow cross vlan communication; comment to disable
+[static_route]="192.168.0.0/16|192.168.60.1"
+[local_lan]="192.168.0.0/16"
+)
+declare -A _openvpn=(
+[volumes]="${cDataPath}/openvpn:/etc/openvpn"
+# Name of openvpn config file
+[openvpn_configfile]="openvpn.conf"
+[mount]="/dev/net/tun:dev/net/tun"
+)
+declare -A _transmission_vlan60_net=(
+# [mac_address]=""
+# [ipv4_address]=""
+)
+
 EOF
 }
 
@@ -297,6 +339,17 @@ function dockerNetwork() {
 		-o parent="${!bridge}" \
 		"${netName}"
 	fi
+}
+
+function usrpths {
+	# Sets up command prompt and nano defaults for root in the contaners.
+	local usrpth="/mnt/scripts/user"
+
+	# Link files
+	sudo truenas-nsexec "${lxc_name}" "cd /root/ && ln -s '${usrpth}/.profile' .bashrc"
+	sudo truenas-nsexec "${lxc_name}" 'cd /root/ && ln -fs .bashrc .profile'
+	sudo truenas-nsexec "${lxc_name}" "cd /root/ && ln -s '${usrpth}/.nanorc' .nanorc"
+	sudo truenas-nsexec "${lxc_name}" "cd /root/ && ln -s '${usrpth}/.config' .config"
 }
 
 # Prevent sudo timeout
@@ -655,6 +708,105 @@ elif [ "${cnType}" = "radarr" ]; then
 }
 
 	dockerWrite "${cnType}" "${containConfig}"
+}
+elif [ "${cnType}" = "trans" ] || [ "${cnType}" = "transmission" ]; then
+lxc_name="transmission"
+{
+	# FixMe: We would create the LXC container here if we could
+
+	# Generic Configuration
+	usrpths
+	if [ ! -f "${cDataPath}/transmission/.bash_history" ]; then
+		sudo touch "${cDataPath}/transmission/.bash_history"
+	fi
+	sudo truenas-nsexec "${lxc_name}" 'ln -sf "/var/lib/transmission-daemon/config/.bash_history" "/root/.bash_history"'
+
+	# Install prereqs
+	sudo truenas-nsexec "${lxc_name}" 'apt-get -y update'
+	sudo truenas-nsexec "${lxc_name}" 'apt-get -y install bash bash-completion tmux wget curl nano sudo fortune-mod fortunes bc'
+
+	# Install main packages
+	sudo truenas-nsexec "${lxc_name}" 'apt-get -y install openvpn coreutils jq nftables'
+
+	if [ ! -z "${_transmission[version]}" ]; then
+		# Get the download location of the deb
+		lxc_arch="$(sudo truenas-nsexec "${lxc_name}" dpkg --print-architecture)"
+		transmission_file_hash="$(curl -s "https://snapshot.debian.org/mr/binary/transmission-daemon/${_transmission[version]}/binfiles" 2>/dev/null | jq -r --arg arch "${lxc_arch}" '.result[] | select(.architecture == $arch) | .hash')"
+		if [ -z "${transmission_file_hash}" ]; then
+			echo "Be sure to pick a valid version: https://snapshot.debian.org/binary/transmission-daemon/" >&2
+			exit 1
+		fi
+		transmission_pub_date="$(curl -s "https://snapshot.debian.org/mr/file/${transmission_file_hash}/info" 2>/dev/null | jq -r '.result[0].first_seen')"
+
+		sudo truenas-nsexec "${lxc_name}" bash -c 'echo "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20240804T152144Z trixie main" > /etc/apt/sources.list.d/transmission-snapshot.list'
+		sudo truenas-nsexec "${lxc_name}" 'apt-get -o "Acquire::Check-Valid-Until=false" -y update'
+
+		# Install specified version
+		sudo truenas-nsexec "${lxc_name}" env DEBIAN_FRONTEND=noninteractive apt-get -y install --allow-downgrades \
+        transmission-daemon="${_transmission[version]}" \
+        transmission-cli="${_transmission[version]}" \
+        transmission-common="${_transmission[version]}"
+
+        sudo truenas-nsexec "${lxc_name}" 'rm /etc/apt/sources.list.d/transmission-snapshot.list'
+	else
+		sudo truenas-nsexec "${lxc_name}" 'apt-get -y install transmission-cli transmission-daemon transmission-common'
+	fi
+
+	# Lock the installed version
+	sudo truenas-nsexec "${lxc_name}" 'apt-mark hold transmission-daemon transmission-cli transmission-common'
+
+	# Set permissions
+	sudo truenas-nsexec "${lxc_name}" "groupadd -g ${_transmission[pgid]} ${_transmission[group_name]}"
+	sudo truenas-nsexec "${lxc_name}" "useradd -M -u ${_transmission[puid]} -g ${_transmission[pgid]} -s /usr/sbin/nologin ${_transmission[transmission_user]}"
+	sudo truenas-nsexec "${lxc_name}" "usermod -aG ${_transmission[group_name]} ${_transmission[transmission_user]}"
+	sudo truenas-nsexec "${lxc_name}" 'touch /var/log/transmission.log'
+	sudo truenas-nsexec "${lxc_name}" "chown ${_transmission[transmission_user]}:${_transmission[group_name]} /var/log/transmission.log"
+	sudo truenas-nsexec "${lxc_name}" 'mkdir -p "/tmp/trans/"'
+
+	# Enable Services
+	## Transmission config
+	sudo truenas-nsexec "${lxc_name}" 'install -d -m 755 -o root -g root /etc/systemd/system/transmission-daemon.service.d'
+	sudo truenas-nsexec "${lxc_name}" 'cp /mnt/scripts/trans/transmission-override.conf /tmp/trans/'
+
+	sudo truenas-nsexec "${lxc_name}" "sed -i -e 's:%%umask%%:${_transmission[umask]}:g' -e 's:%%transmission_user%%:${_transmission[transmission_user]}:g' -e 's:%%group_name%%:${_transmission[group_name]}:g' '/tmp/trans/transmission-override.conf'"
+	sudo truenas-nsexec "${lxc_name}" 'install -m 644 -o root -g root /tmp/trans/transmission-override.conf /etc/systemd/system/transmission-daemon.service.d/override.conf'
+
+	## OpenVPN config
+	# FixMe: is there anything that needs to be here
+
+	## Network config
+	sudo truenas-nsexec "${lxc_name}" 'cp /mnt/scripts/trans/transmission-nftables.conf /tmp/trans/'
+	sudo truenas-nsexec "${lxc_name}" "sed -i -e 's:%%transmission_user%%:${_transmission[transmission_user]}:g' -e 's:%%local_lan%%:${_transmission[local_lan]}:g' '/tmp/trans/transmission-nftables.conf'"
+
+	sudo truenas-nsexec "${lxc_name}" 'install -d -m 755 -o root -g root /etc/nftables.d'
+	sudo truenas-nsexec "${lxc_name}" 'install -m 644 -o root -g root /tmp/trans/transmission-nftables.conf /etc/nftables.d/transmission-nftables.conf'
+	sudo truenas-nsexec "${lxc_name}" bash -c 'grep -q "include \"/etc/nftables.d/\*.conf\"" /etc/nftables.conf || echo "include \"/etc/nftables.d/*.conf\"" >> /etc/nftables.conf'
+
+	### Static route for local inter-vlan connections
+	if [ ! -z "${_transmission[static_route]}" ]; then
+		st_routeSc="$(cut -d '|' -f '1' <<< "${_transmission[static_route]}")"
+		st_routeEd="$(cut -d '|' -f '2' <<< "${_transmission[static_route]}")"
+		sudo truenas-nsexec "${lxc_name}" "cp /mnt/scripts/trans/static-route.service /tmp/trans/"
+		sudo truenas-nsexec "${lxc_name}" "sed -i -e 's:%%st_routeSc%%:${st_routeSc}:g' -e 's:%%st_routeEd%%:${st_routeEd}:g' /tmp/trans/static-route.service"
+
+		sudo truenas-nsexec "${lxc_name}" "install -m 644 -o root -g root /tmp/trans/static-route.service /etc/systemd/system/static-route.service"
+	fi
+
+
+	# Start services
+	sudo truenas-nsexec "${lxc_name}" 'systemctl daemon-reload'
+	sudo truenas-nsexec "${lxc_name}" "wget http://ipinfo.io/ip -qO -"
+    sudo truenas-nsexec "${lxc_name}" 'systemctl enable --now nftables'
+	sudo truenas-nsexec "${lxc_name}" "wget http://ipinfo.io/ip -qO -"
+	sudo truenas-nsexec "${lxc_name}" "systemctl enable --now static-route.service"
+    sudo truenas-nsexec "${lxc_name}" 'systemctl enable --now openvpn@openvpn'
+    sudo truenas-nsexec "${lxc_name}" 'systemctl enable --now transmission-daemon'
+
+    # Final configuration
+    sudo truenas-nsexec "${lxc_name}" 'transmission-remote --torrent-done-script "/mnt/scripts/trans/torrentPost.sh"'
+    sudo truenas-nsexec "${lxc_name}" '/mnt/scripts/trans/pia-port-forward.sh >> /var/log/pia.log 2>&1'
+    sudo truenas-nsexec "${lxc_name}" "cp -sf /mnt/scripts/trans/transmission.logrotate /etc/logrotate.d/transmission"
+    sudo truenas-nsexec "${lxc_name}" "crontab /mnt/scripts/trans/transmission.crontab"
 }
 else
 {
