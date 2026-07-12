@@ -1,0 +1,13 @@
+[Unit]
+Description=Inject Custom Static Route
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Use 'replace' to ensure idempotency. It will add the route if missing, or update it if present.
+ExecStart=/sbin/ip route replace %%st_routeSc%% via %%st_routeEd%%
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
