@@ -1,6 +1,6 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
 
-# Copyright (c) 2023 dak180 and contributors. See
+# Copyright (c) 2026 dak180 and contributors. See
 # https://opensource.org/licenses/mit-license.php
 #
 # Enable port forwarding for transmission specifically in FreeBSD.
@@ -11,6 +11,7 @@
 #
 # Packages needed:
 #   pkg install -y sudo transmission-cli transmission-utils base64 jq curl wget openvpn bash
+#	pt-get install sudo transmission-cli transmission-common coreutils jq curl wget openvpn bash
 #
 # Usage:
 #  ./pia-port-forward.sh or bash pia-port-forward.sh or call from cron
@@ -66,10 +67,16 @@ function re_check_connectivity() {
 function restart_vpn() {
 
 	echo "| Restarting openvpn." 1>&2
-	service openvpn restart &> /dev/null
+	if [ "${systemType}" = "BSD" ]; then
+		service openvpn restart &> /dev/null
+	else
+		systemctl restart openvpn@openvpn &> /dev/null
+	fi
 	sleep 15
 
-	${firewallScript}
+	if [ "${systemType}" = "BSD" ]; then
+		${firewallScript}
+	fi
 }
 
 function VPN_Status() {
@@ -80,7 +87,11 @@ function VPN_Status() {
 
 	tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
 	while [ -z "${tunnelAdapter}" ] && [ "${try:=0}" -le "20" ]; do
-		tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
+		if [ "${systemType}" = "BSD" ]; then
+			tunnelAdapter="$(ifconfig | grep -v "groups" | grep "tun" | cut -d ":" -f1 | tail -n 1)"
+		else
+			tunnelAdapter="$(ip -o link show type tun | cut -d':' -f2 | tr -d ' ' | tail -n 1)"
+		fi
 		try="$(( try + 1 ))"
 		sleep 3
 	done
@@ -121,6 +132,12 @@ function is_port_forwarded() {
 }
 
 function write_gateway_script() {
+	if [ "${systemType}" = "BSD" ]; then
+		local SED_CMD="sed -i ''"
+	else
+		local SED_CMD="sed -i"
+	fi
+
 	tee "${varFile}" <<- EOL
 		#!/usr/local/bin/bash
 
@@ -128,12 +145,13 @@ function write_gateway_script() {
 		/bin/echo "\${route_vpn_gateway}" > "${gateFile}"
 
 EOL
+
 	chmod +x "${varFile}"
 
 	if grep -q "^script-security 1" < "${confFile}"; then
-		sed -i '' -e 's:script-security 1:script-security 2:' "${confFile}"
+		${SED_CMD} -e 's:script-security 1:script-security 2:' "${confFile}"
 	elif grep -q "^script-security 0" < "${confFile}"; then
-		sed -i '' -e 's:script-security 0:script-security 2:' "${confFile}"
+		${SED_CMD} -e 's:script-security 0:script-security 2:' "${confFile}"
 	elif ! grep -q "^script-security" < "${confFile}"; then
 		tee -a "${confFile}" <<< "script-security 2"
 	fi
@@ -240,10 +258,17 @@ function get_payload_and_sig() {
 	local json
 	local Pstatus
 	local Pexpire
+	local currentTime
 
 	authToken="${1}"
 	gatewayAddress="${2}"
 	adaptorName="${3}"
+
+	if [ "${systemType}" = "BSD" ]; then
+		currentTime="$(date -ju +'%s' 2> /dev/null)"
+	else
+		currentTime="$(date -u +'%s' 2> /dev/null)"
+	fi
 
 
 	if [ -s "${payloadFile}" ]; then
@@ -269,13 +294,18 @@ function get_payload_and_sig() {
 		exit 1
 	fi
 	Pstatus="$(jq -Mre '.status | values' <<< "${json}")"
-	Pexpire="$(date -juf '%FT%T' "$(jq -Mre '.payload | values' <<< "${json}" | base64 -d | jq -Mre '.expires_at | values' | cut -c '1-19')" +'%s' 2> /dev/null)"
+	if [ "${systemType}" = "BSD" ]; then
+		Pexpire="$(date -juf '%FT%T' "$(jq -Mre '.payload | values' <<< "${json}" | base64 -d | jq -Mre '.expires_at | values' | cut -c '1-19')" +'%s' 2> /dev/null)"
+	else
+		Pexpire="$(date -d "$(jq -Mre '.payload | values' <<< "${json}" | base64 -d | jq -Mre '.expires_at | values')" +'%s' 2> /dev/null)"
+	fi
+
 
 	if [ ! "${Pstatus}" = "OK" ]; then
 		echo "| Status is not ok: ${Pstatus}" 1>&2
 		rm -f "${payloadFile}"
 		exit 1
-	elif [ "$(date -ju +'%s' 2> /dev/null)" -ge "${Pexpire}" ]; then
+	elif [ "${currentTime}" -ge "${Pexpire}" ]; then
 		echo "| Payload file is expired." 1>&2
 		rm -f "${payloadFile}"
 		exit 1
@@ -353,6 +383,11 @@ function refresh_port() {
 		return 0
 	fi
 }
+
+# Check if we are running on BSD
+if [[ "$(uname -mrs)" =~ .*"BSD".* ]]; then
+	systemType="BSD"
+fi
 
 
 # First check for connectivity using the user that executes Transmission.  If this fails, script will try to relaunch openvpn service and re-check (15 second pause to allow OpenVPN to start)
